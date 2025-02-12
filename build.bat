@@ -15,7 +15,7 @@ set defines=/D DEBUG /D WINDOWS_BUILD
 
 echo "Compiling shaders..."
 
-compile_shaders.bat
+call compile_shaders.bat
 
 echo "Building main..."
 

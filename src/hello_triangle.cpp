@@ -18,6 +18,7 @@
 #include <cstdint> // Necessary for uint32_t
 #include <limits> // Necessary for std::numeric_limits
 #include <algorithm> // Necessary for std::clamp
+#include <fstream>
 
 #include "raysDebugHelper.hpp"
 
@@ -193,10 +194,6 @@ private:
         }
 
         VK_CHECK(vkCreateInstance(&createInfo, nullptr, &instance));
-    }
-
-    void createGraphicsPipeline() {
-
     }
 
     void createImageViews() {
@@ -493,6 +490,9 @@ private:
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 
+    /// @brief Get the extent we want based on the capabilities
+    /// @param capabilities 
+    /// @return VkExtent2D
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
         if (capabilities.currentExtent.width != UINT32_MAX) {
             return capabilities.currentExtent;
@@ -512,6 +512,7 @@ private:
         }
     }
 
+    /// @brief Create a swapchain
     void createSwapChain() {
         SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
     
@@ -561,6 +562,80 @@ private:
 
         swapChainImageFormat = surfaceFormat.format;
         swapChainExtent = extent;
+    }
+
+    /// @brief Read a file and return its data
+    /// @param filename 
+    /// @return vector<char>
+    static std::vector<char> readFile(const std::string& filename) {
+        // Open a file at the end so we can get its size
+        std::ifstream file(filename, std::ios::ate | std::ios::binary);
+    
+        if (!file.is_open()) {
+            throw std::runtime_error("failed to open file!");
+        }
+
+        // Get file size
+        size_t fileSize = (size_t) file.tellg();
+        std::vector<char> buffer(fileSize);
+
+        // Goto the beginning of the file and read all of the bytes at once
+        file.seekg(0);
+        file.read(buffer.data(), fileSize);
+
+        // Check if we are reading the files correctly
+        DEBUG_VAR(fileSize);
+
+        // Close the file and return the read data
+        file.close();
+        return buffer;
+    }
+
+    // TODO: Add defines for file locations
+    /// @brief Read shader files and create a graphics pipeline
+    void createGraphicsPipeline() {
+        auto vertShaderCode = readFile("src/shaders/vertex/vert.spv");
+        auto fragShaderCode = readFile("src/shaders/fragment/frag.spv");
+
+        VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
+        VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
+
+        // Vertex shader stage creation
+        VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+        vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+        vertShaderStageInfo.module = vertShaderModule;
+        vertShaderStageInfo.pName = "main";
+
+        // Fragment shader stage creation
+        VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+        fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        fragShaderStageInfo.module = fragShaderModule;
+        fragShaderStageInfo.pName = "main";
+
+        // Add the staging info to an array
+        VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+        
+        // Cleanup
+        vkDestroyShaderModule(device, fragShaderModule, nullptr);
+        vkDestroyShaderModule(device, vertShaderModule, nullptr);
+    }
+
+    /// @brief Take a buffer with bytecode as parameter and create a VkShaderModule
+    /// @param code 
+    /// @return VkShaderModule
+    VkShaderModule createShaderModule(const std::vector<char>& code) {
+        VkShaderModuleCreateInfo createInfo{};
+        // Set the configuration for the shader module
+        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        createInfo.codeSize = code.size();
+        createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+
+        // Create the shader module
+        VkShaderModule shaderModule;
+        VK_CHECK(vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule));
+        return shaderModule;
     }
 };
 
