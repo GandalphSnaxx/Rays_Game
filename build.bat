@@ -9,9 +9,13 @@ set C_STD_lib="C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC
 set VCRUNTIME_lib="C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.42.34433\lib\x64"
 set VULKAN_LINK_CMD=/LIBPATH:%VULKAN_SDK%/Lib vulkan-1.lib user32.lib gdi32.lib shell32.lib
 
-SET includes=/Isrc /I%VULKAN_SDK%/Include /I%GLFW_include% /I%GLM_include%
-SET links=/link %VULKAN_LINK_CMD% /LIBPATH:%GLFW_lib% glfw3.lib /LIBPATH:%C_STD_lib% ucrt.lib /LIBPATH:%VCRUNTIME_lib% vcruntime.lib /NODEFAULTLIB:MSVCRTD
-SET defines=/D DEBUG /D WINDOWS_BUILD
+set includes=/Isrc /I%VULKAN_SDK%/Include /I%GLFW_include% /I%GLM_include%
+set links=/link %VULKAN_LINK_CMD% /LIBPATH:%GLFW_lib% glfw3.lib /LIBPATH:%C_STD_lib% ucrt.lib /LIBPATH:%VCRUNTIME_lib% vcruntime.lib /NODEFAULTLIB:MSVCRTD
+set defines=/D DEBUG /D WINDOWS_BUILD
+
+echo "Compiling shaders..."
+
+compile_shaders.bat
 
 echo "Building main..."
 
