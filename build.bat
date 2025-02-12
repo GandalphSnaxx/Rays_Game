@@ -19,4 +19,4 @@ echo Includes: %includes%
 echo Links: %links%
 echo Defines: %defines%
 
-cl /MD /EHsc /Z7 /Fe"main" %includes% %defines% src/hello_triangle.cpp %links%
+cl /std:c++17 /MD /EHsc /Z7 /Fe"main" %includes% %defines% src/hello_triangle.cpp %links%
