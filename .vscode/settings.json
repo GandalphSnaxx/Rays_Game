@@ -1,7 +1,9 @@
 {
     "C_Cpp.default.includePath": [
         "${VULKAN_SDK}/Include",
-        "${workspaceFolder}/src"
+        "${workspaceFolder}/src",
+        "${workspaceFolder}/Libraries/glfw/include",
+        "${workspaceFolder}/Libraries/glm"
     ],
     "files.associations": {
         "chrono": "cpp",

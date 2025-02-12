@@ -1,0 +1,10 @@
+^C:\USERS\RAYRI\DOCUMENTS\RAYS_GAME_DIR\RAYS_GAME\BUILD\CMAKEFILES\56C2DCC089190F73CF430214D4681266\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/RayRi/Documents/Rays_Game_Dir/Rays_Game -BC:/Users/RayRi/Documents/Rays_Game_Dir/Rays_Game/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/RayRi/Documents/Rays_Game_Dir/Rays_Game/build/RaysGame.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

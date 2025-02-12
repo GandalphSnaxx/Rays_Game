@@ -3,9 +3,7 @@
 #endif
 
 #define GLFW_INCLUDE_VULKAN
-// TODO: Make this include look nicer
-#include <../Libraries/glfw-3.4.bin.WIN64/include/GLFW/glfw3.h>
-// #include <GLFW/glfw3.h>
+#include <GLFW/glfw3.h>
 
 #include <iostream>
 #include <vector>
