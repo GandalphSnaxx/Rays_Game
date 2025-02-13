@@ -118,6 +118,10 @@ private:
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffer;
 
+    VkSemaphore imageAvailableSemaphore;
+    VkSemaphore renderFinishedSemaphore;
+    VkFence inFlightFence;
+
     void initWindow() {
         glfwInit();
 
@@ -140,16 +144,26 @@ private:
         createFramebuffers();
         createCommandPool();
         createCommandBuffer();
+        createSyncObjects();
     }
 
     void mainLoop() {
         // Do nothing
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
+            drawFrame();
         }
+
+        // Wait for logical devices to finish operations before exiting
+        vkDeviceWaitIdle(device);
     }
 
     void cleanup() {
+        // Destroy the semaphores and fences when all commands have finished and no more syncronization is necessary
+        vkDestroySemaphore(device, imageAvailableSemaphore, nullptr);
+        vkDestroySemaphore(device, renderFinishedSemaphore, nullptr);
+        vkDestroyFence(device, inFlightFence, nullptr);
+
         // Destroy the command pool
         vkDestroyCommandPool(device, commandPool, nullptr);
 
@@ -807,6 +821,19 @@ private:
         renderPassInfo.subpassCount = 1;
         renderPassInfo.pSubpasses = &subpass;
 
+        // Set subpass dependencies
+        VkSubpassDependency dependency{};
+        // Specify indicies of the dependency and the dependant subpass
+        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependency.dstSubpass = 0;
+        // Specify what operations to wait on and the stages in which these occur
+        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.srcAccessMask = 0;
+
+        // Add the dependencies to the render pass
+        renderPassInfo.dependencyCount = 1;
+        renderPassInfo.pDependencies = &dependency;
+
         VK_CHECK(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
     }
 
@@ -915,6 +942,90 @@ private:
 
         // End the command
         VK_CHECK(vkEndCommandBuffer(commandBuffer));
+    }
+
+    /// @brief Send commands to draw a frame
+    /// @note Outline of a frame:\n
+    /// - Wait for the previous frame to finish\n
+    /// - Acquire an image from the swap chain\n
+    /// - Record a command buffer which draws the scene onto that image\n
+    /// - Submit the recorded command buffer\n
+    /// - Present the swap chain image
+    void drawFrame() {
+        // Wait for the previous frame
+        vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
+
+        // Manually reset the fence
+        vkResetFences(device, 1, &inFlightFence);
+
+        // Acquire an image from the swapchain
+        uint32_t imageIndex;
+        vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+
+        // Reset then record the command buffer
+        vkResetCommandBuffer(commandBuffer, 0);
+        recordCommandBuffer(commandBuffer, imageIndex);
+
+        // Submit the command buffer
+        // Queue submission and syncronization is configured in submitInfo
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+        // Specify which semaphores to wait on before execution begins
+        VkSemaphore waitSemaphores[] = {imageAvailableSemaphore};
+        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = waitSemaphores;
+        submitInfo.pWaitDstStageMask = waitStages;
+
+        // Specify which command buffers to submit for execution
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
+
+        // Specify which semaphores to signal once the command buffer(s) have finished execution
+        VkSemaphore signalSemaphores[] = {renderFinishedSemaphore};
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = signalSemaphores;
+
+        // Submit the command buffer to the graphics queue
+        VK_CHECK(vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence));
+
+        // Submit the results back to the swapchain
+        VkPresentInfoKHR presentInfo{};
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        // Specify which semaphores to wait on
+        presentInfo.waitSemaphoreCount = 1;
+        presentInfo.pWaitSemaphores = signalSemaphores;
+
+        // Specify the swapchain to present images to
+        VkSwapchainKHR swapChains[] = {swapChain};
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = swapChains;
+        presentInfo.pImageIndices = &imageIndex;
+        // Can be sent an array of VK_RESULTS to check if every swapchain presentation was successful
+        presentInfo.pResults = nullptr; // Optional
+
+        // Submit the request to present an image to the swapchain
+        vkQueuePresentKHR(presentQueue, &presentInfo);
+    }
+
+    /// @brief Use semaphores and fences to signal code that shouldn't run at the same time dosen't
+    /// @note Further reading: https://vulkan-tutorial.com/en/Drawing_a_triangle/Drawing/Rendering_and_presentation
+    void createSyncObjects() {
+        // Create a semaphore
+        VkSemaphoreCreateInfo semaphoreInfo{};
+        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+        // Create a fence
+        VkFenceCreateInfo fenceInfo{};
+        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        // Add a signal saying the first frame can be drawn
+        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+        // Build the semaphores and fences
+        VK_CHECK(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphore));
+        VK_CHECK(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphore));
+        VK_CHECK(vkCreateFence(device, &fenceInfo, nullptr, &inFlightFence));
     }
 };
 
