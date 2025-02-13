@@ -1160,39 +1160,38 @@ private:
         app->framebufferResized = true;
     }
 
-    /// @brief Buffers in Vulkan are regions of memory used for storing arbitrary data that can be read by the graphics card
+    /// @brief Create a buffer dedicated to vertex data
     void createVertexBuffer() {
-        VkBufferCreateInfo bufferInfo{};
-        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        // Set buffer size in bytes
-        bufferInfo.size = ARRAY_SIZE(vertices);
-        // Set buffer usage. Multiple uses can be specified with bitwise or
-        bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        VkDeviceSize bufferSize = ARRAY_SIZE(vertices);
 
-        VK_CHECK(vkCreateBuffer(device, &bufferInfo, nullptr, &vertexBuffer));
+        // Create a staging buffer (host visible)
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+        createBuffer(bufferSize, 
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+            stagingBuffer, 
+            stagingBufferMemory);
 
-        // Get the memory requirements of the VkBuffer
-        VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(device, vertexBuffer, &memRequirements);
-
-        // Configure the memory allocation
-        VkMemoryAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = findMemoryType(
-            memRequirements.memoryTypeBits, 
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-        VK_CHECK(vkAllocateMemory(device, &allocInfo, nullptr, &vertexBufferMemory));
-
-        vkBindBufferMemory(device, vertexBuffer, vertexBufferMemory, 0);
-
-        // Map the buffer memory into CPU accessable memory
+        // Map the staging buffer memory into CPU accessable memory
         void* data;
-        vkMapMemory(device, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
-            memcpy(data, vertices.data(), (size_t) bufferInfo.size);
-        vkUnmapMemory(device, vertexBufferMemory);
+        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+            memcpy(data, vertices.data(), (size_t) bufferSize);
+        vkUnmapMemory(device, stagingBufferMemory);
+
+        // Create the actual vertex buffer (device local)
+        createBuffer(bufferSize, 
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
+            vertexBuffer, 
+            vertexBufferMemory);
+
+        // Move the vertex data to the gpu memory
+        copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+        
+        // Cleanup the staging buffer
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        vkFreeMemory(device, stagingBufferMemory, nullptr);
     }
 
     /// @brief Find a valid section of gpu memory for the queried type
@@ -1211,6 +1210,88 @@ private:
         }
         
         THROW_ERR("failed to find suitable memory type!");
+    }
+
+    /// @brief Buffers in Vulkan are regions of memory used for storing arbitrary data that can be read by the graphics card
+    /// @param size The size of the buffer to be created
+    /// @param usage Buffer usage flag bits
+    /// @param properties Memory flags in a bitfield
+    /// @param buffer A pointer to the buffer
+    /// @param bufferMemory A pointer to the buffer memory
+    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
+        // Buffer configuration
+        VkBufferCreateInfo bufferInfo{};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        // Set buffer size in bytes
+        bufferInfo.size = size;
+        // Set buffer usage. Multiple uses can be specified with bitwise or
+        bufferInfo.usage = usage;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        VK_CHECK(vkCreateBuffer(device, &bufferInfo, nullptr, &buffer));
+
+        // Get the memory requirements of the VkBuffer
+        VkMemoryRequirements memRequirements;
+        vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
+
+        // Configure the memory allocation
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
+
+        VK_CHECK(vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory));
+
+        vkBindBufferMemory(device, buffer, bufferMemory, 0);
+    }
+
+    /// @brief Allocate a temporary command buffer for memory transfer commands
+    /// @param srcBuffer Source buffer
+    /// @param dstBuffer Destination buffer
+    /// @param size Buffer size
+    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+        // Configure a command buffer
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandPool = commandPool;
+        allocInfo.commandBufferCount = 1;
+    
+        // Allocate the commands
+        VkCommandBuffer commandBuffer;
+        vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
+
+        // Start recording the command buffer
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+        vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+        // Initiate a coppy command
+        VkBufferCopy copyRegion{};
+        copyRegion.srcOffset = 0; // Optional
+        copyRegion.dstOffset = 0; // Optional
+        copyRegion.size = size;
+        vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+        // End the command buffer recording
+        vkEndCommandBuffer(commandBuffer);
+
+        // No events to wait for, just copy the memory
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
+
+        vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+        
+        // TODO: Add fencing to queue multiple memory transfers at once
+        // Wait for the transfer
+        vkQueueWaitIdle(graphicsQueue);
+
+        // Cleanup command buffer
+        vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
     }
 };
 

@@ -21,4 +21,7 @@ using namespace std;
 #define DEBUG_ENDL
 #endif
 
+// Halt the program
+#define THROW_ERR(msg)      throw runtime_error(msg)
+
 #endif
