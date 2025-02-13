@@ -109,11 +109,14 @@ private:
     VkFormat swapChainImageFormat;
     VkExtent2D swapChainExtent;
     std::vector<VkImageView> swapChainImageViews;
+    std::vector<VkFramebuffer> swapChainFramebuffers;
 
     VkRenderPass renderPass;
     VkPipelineLayout pipelineLayout;
-
     VkPipeline graphicsPipeline;
+
+    VkCommandPool commandPool;
+    VkCommandBuffer commandBuffer;
 
     void initWindow() {
         glfwInit();
@@ -134,6 +137,9 @@ private:
         createImageViews();
         createRenderPass();
         createGraphicsPipeline();
+        createFramebuffers();
+        createCommandPool();
+        createCommandBuffer();
     }
 
     void mainLoop() {
@@ -144,6 +150,15 @@ private:
     }
 
     void cleanup() {
+        // Destroy the command pool
+        vkDestroyCommandPool(device, commandPool, nullptr);
+
+        // Destroy every framebuffer
+        for (auto framebuffer : swapChainFramebuffers) {
+            vkDestroyFramebuffer(device, framebuffer, nullptr);
+        }
+
+        // Destroy pipeline and pipeline layout
         vkDestroyPipeline(device, graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
         vkDestroyRenderPass(device, renderPass, nullptr);
@@ -793,6 +808,113 @@ private:
         renderPassInfo.pSubpasses = &subpass;
 
         VK_CHECK(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
+    }
+
+    /// @brief Create frame buffers
+    void createFramebuffers() {
+        // Resize the container to hold all frame buffers
+        swapChainFramebuffers.resize(swapChainImageViews.size());
+
+        // Iterate through image views and create frame buffers for them
+        for (size_t i = 0; i < swapChainImageViews.size(); i++) {
+            VkImageView attachments[] = {
+                swapChainImageViews[i]
+            };
+        
+            VkFramebufferCreateInfo framebufferInfo{};
+            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            framebufferInfo.renderPass = renderPass;
+            framebufferInfo.attachmentCount = 1;
+            framebufferInfo.pAttachments = attachments;
+            framebufferInfo.width = swapChainExtent.width;
+            framebufferInfo.height = swapChainExtent.height;
+            framebufferInfo.layers = 1;
+        
+            VK_CHECK(vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]));
+        }
+    }
+
+    /// @brief Create a command pool that will be recorded every frame
+    void createCommandPool() {
+        QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
+
+        // Two possible flags for command pools: VK_COMMAND_POOL_CREATE_TRANSIENT_BIT and VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT
+        VkCommandPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+
+        VK_CHECK(vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool));
+    }
+
+    /// @brief Create a command buffer
+    void createCommandBuffer() {
+        // Specify the command pool and number of buffers
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = commandPool;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = 1;
+
+        VK_CHECK(vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer));
+    }
+
+    /// @brief Writes the commands we want to execute into a command buffer
+    /// @param commandBuffer The command buffer to be written to
+    /// @param imageIndex The index of the current swapchain image we want to write to
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.flags = 0; // Optional
+        beginInfo.pInheritanceInfo = nullptr; // Optional
+
+        VK_CHECK(vkBeginCommandBuffer(commandBuffer, &beginInfo));
+
+        // Bind the framebuffer for the swapchain image we want to draw
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = renderPass;
+        renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
+        // Define the size of the render area
+        renderPassInfo.renderArea.offset = {0, 0};
+        renderPassInfo.renderArea.extent = swapChainExtent;
+
+        // Define clear values for VK_ATTACHMENT_LOAD_OP_CLEAR
+        VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+        renderPassInfo.clearValueCount = 1;
+        renderPassInfo.pClearValues = &clearColor;
+
+        // Begin render pass
+        vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+            // Basic drawing commands:
+
+            // Bind the graphics pipeline
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+
+            // Since viewport and scissor state are dynamic, set them in the command buffer before issuing a draw command
+            VkViewport viewport{};
+            viewport.x = 0.0f;
+            viewport.y = 0.0f;
+            viewport.width = (float) swapChainExtent.width;
+            viewport.height = (float) swapChainExtent.height;
+            viewport.minDepth = 0.0f;
+            viewport.maxDepth = 1.0f;
+            vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+            VkRect2D scissor{};
+            scissor.offset = {0, 0};
+            scissor.extent = swapChainExtent;
+            vkCmdSetScissor(commandBuffer, 0, 1, &scissor);            
+
+            // Issue a draw command for the triangle!
+            vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+
+        // End the render pass
+        vkCmdEndRenderPass(commandBuffer);
+
+        // End the command
+        VK_CHECK(vkEndCommandBuffer(commandBuffer));
     }
 };
 
