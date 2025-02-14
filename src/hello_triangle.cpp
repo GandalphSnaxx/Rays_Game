@@ -203,6 +203,9 @@ private:
     std::vector<VkDeviceMemory> uniformBuffersMemory;
     std::vector<void*> uniformBuffersMapped;
 
+    VkDescriptorPool descriptorPool;
+    std::vector<VkDescriptorSet> descriptorSets;
+
     void initWindow() {
         glfwInit();
 
@@ -229,6 +232,8 @@ private:
         createVertexBuffer();
         createIndexBuffer();
         createUniformBuffers();
+        createDescriptorPool();
+        createDescriptorSets();
         createCommandBuffers();
         createSyncObjects();
     }
@@ -252,6 +257,9 @@ private:
             vkDestroyBuffer(device, uniformBuffers[i], nullptr);
             vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
         }
+
+        // Descriptor sets get destroyed when the descriptor pool is destroyed
+        vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
         vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
@@ -781,8 +789,9 @@ private:
         rasterizer.rasterizerDiscardEnable = VK_FALSE;
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;  // Can also be edges, or points. May require a gpu feature
         rasterizer.lineWidth = 1.0f;
+        // Set the backface culling to work with Vulkan cords
         rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-        rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+        rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterizer.depthBiasEnable = VK_FALSE;
         rasterizer.depthBiasConstantFactor = 0.0f; // Optional
         rasterizer.depthBiasClamp = 0.0f; // Optional
@@ -836,8 +845,8 @@ private:
         // Create pipeline layout configuration
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = 0;
-        pipelineLayoutInfo.pushConstantRangeCount = 0;
+        pipelineLayoutInfo.setLayoutCount = 1;
+        pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 
         VK_CHECK(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout));
 
@@ -1047,6 +1056,16 @@ private:
 
             // Bind index buffers
             vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+            // Bind the descriptor set each frame to the descriptors in the shader
+            vkCmdBindDescriptorSets(commandBuffer, 
+                VK_PIPELINE_BIND_POINT_GRAPHICS, 
+                pipelineLayout, 
+                0, 
+                1, 
+                &descriptorSets[currentFrame], 
+                0, 
+                nullptr);
 
             // Issue a draw command using indicies
             vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
@@ -1386,8 +1405,8 @@ private:
         VkDescriptorSetLayoutBinding uboLayoutBinding{};
         // Specify the binding used in the shader and the type of descriptor
         uboLayoutBinding.binding = 0;
-        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         uboLayoutBinding.descriptorCount = 1;
+        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         // Describe which shader stages the descriptor is referenced in
         uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
         // Only relevant for image sampling related descriptors
@@ -1423,8 +1442,8 @@ private:
         }
     }
 
-    /// @brief 
-    /// @param currentImage 
+    /// @brief Update object verticies to create a 90*/s rotation
+    /// @param currentImage The image to be updated
     void updateUniformBuffer(uint32_t currentImage) {
         // Use crono to rotate the geometry 90*/s despite framerate
         static auto startTime = std::chrono::high_resolution_clock::now();
@@ -1454,6 +1473,64 @@ private:
 
         // Copy data from the object to the current uniform buffer
         memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+    }
+
+    /// @brief Create a descriptor set for each VkBuffer
+    void createDescriptorPool() {
+        VkDescriptorPoolSize poolSize{};
+        // Describe which descriptor types our descriptor sets are going to contain and how many of them
+        poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSize.descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+
+        // Structure the poolSize info
+        VkDescriptorPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        poolInfo.poolSizeCount = 1;
+        poolInfo.pPoolSizes = &poolSize;
+        // Maximum number of poolSets
+        poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+
+        VK_CHECK(vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool));
+    }
+
+    /// @brief Allocate the descriptor sets
+    void createDescriptorSets() {
+        // Set the pool, number of descriptors, and layout
+        std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
+        VkDescriptorSetAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = descriptorPool;
+        allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+        allocInfo.pSetLayouts = layouts.data();
+
+        // Allocate descriptor set handles
+        descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+        VK_CHECK(vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()));
+
+        // Populate every descriptor
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            VkDescriptorBufferInfo bufferInfo{};
+            bufferInfo.buffer = uniformBuffers[i];
+            bufferInfo.offset = 0;
+            bufferInfo.range = sizeof(UniformBufferObject);
+
+            VkWriteDescriptorSet descriptorWrite{};
+            descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            // The set to update
+            descriptorWrite.dstSet = descriptorSets[i];
+            // No binding and no array
+            descriptorWrite.dstBinding = 0;
+            descriptorWrite.dstArrayElement = 0;
+            // Specify type and size
+            descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrite.descriptorCount = 1;
+            // An array of descriptorCount structs that actually configure the descriptors
+            descriptorWrite.pBufferInfo = &bufferInfo;
+            descriptorWrite.pImageInfo = nullptr; // Optional
+            descriptorWrite.pTexelBufferView = nullptr; // Optional
+
+            vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+        }
     }
 };
 
