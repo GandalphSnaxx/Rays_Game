@@ -7,7 +7,9 @@
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
+#define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <iostream>
 #include <vector>
@@ -21,6 +23,7 @@
 #include <algorithm> // Necessary for std::clamp
 #include <fstream>
 #include <array>
+#include <chrono>
 
 #include "raysDebugHelper.hpp"
 
@@ -115,11 +118,32 @@ struct Vertex {
 };
 
 // Example triangle verticies
-const std::vector<Vertex> vertices = {
+const std::vector<Vertex> triangleVertices = {
+    // All values are 0.0f to 1.0f
+    // {{pos x, pos y}, {r, g, b}}
     {{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
     {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
     {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
 };
+
+// Example rectangle verticies
+const std::vector<Vertex> vertices = {
+    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+    {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+};
+const std::vector<uint32_t> indices = {
+    0, 1, 2, 2, 3, 0
+};
+
+// A description of the types of resources to be accessed by the pipeline
+struct UniformBufferObject {
+    glm::mat4 model;
+    glm::mat4 view;
+    glm::mat4 proj;
+};
+
 
 class HelloTriangleApplication {
 public:
@@ -155,6 +179,7 @@ private:
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
     VkRenderPass renderPass;
+    VkDescriptorSetLayout descriptorSetLayout;
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
 
@@ -171,6 +196,12 @@ private:
 
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
+    VkBuffer indexBuffer;
+    VkDeviceMemory indexBufferMemory;
+
+    std::vector<VkBuffer> uniformBuffers;
+    std::vector<VkDeviceMemory> uniformBuffersMemory;
+    std::vector<void*> uniformBuffersMapped;
 
     void initWindow() {
         glfwInit();
@@ -191,10 +222,13 @@ private:
         createSwapChain();
         createImageViews();
         createRenderPass();
+        createDescriptorSetLayout();
         createGraphicsPipeline();
         createFramebuffers();
         createCommandPool();
         createVertexBuffer();
+        createIndexBuffer();
+        createUniformBuffers();
         createCommandBuffers();
         createSyncObjects();
     }
@@ -212,6 +246,17 @@ private:
 
     void cleanup() {
         cleanupSwapChain();
+
+        // Cleanup every uniform buffer
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            vkDestroyBuffer(device, uniformBuffers[i], nullptr);
+            vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
+        }
+
+        vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+
+        vkDestroyBuffer(device, indexBuffer, nullptr);
+        vkFreeMemory(device, indexBufferMemory, nullptr);
 
         vkDestroyBuffer(device, vertexBuffer, nullptr);
         vkFreeMemory(device, vertexBufferMemory, nullptr);
@@ -800,6 +845,10 @@ private:
         VkGraphicsPipelineCreateInfo pipelineInfo{};
         // Reference the array of VkPipelineShaderStageCreateInfo structs
         pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        // Set the descriptors the shaders will be using
+        pipelineLayoutInfo.setLayoutCount = 1;
+        pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+        // Set the shader stages
         pipelineInfo.stageCount = 2;
         pipelineInfo.pStages = shaderStages;
         // Reference the structures described in the fixed-function stage
@@ -994,10 +1043,13 @@ private:
             // Bind vertex buffers
             VkBuffer vertexBuffers[] = {vertexBuffer};
             VkDeviceSize offsets[] = {0};
-            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);         
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-            // Issue a draw command for the triangle!
-            vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
+            // Bind index buffers
+            vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+            // Issue a draw command using indicies
+            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
         // End the render pass
         vkCmdEndRenderPass(commandBuffer);
@@ -1028,6 +1080,8 @@ private:
         } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
             VK_CHECK(result);
         }
+
+        updateUniformBuffer(currentFrame);
 
         // Only reset the fences if we are submitting work
         vkResetFences(device, 1, &inFlightFences[currentFrame]);
@@ -1292,6 +1346,114 @@ private:
 
         // Cleanup command buffer
         vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+    }
+
+    /// @brief Nearly identical to the create vertex buffer. 
+    void createIndexBuffer() {
+        VkDeviceSize bufferSize = ARRAY_SIZE(indices);
+    
+        // Create staging buffer in high performance memory
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+        createBuffer(bufferSize, 
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+            stagingBuffer, 
+            stagingBufferMemory);
+    
+        // Copy the buffer into CPU accessable memory
+        void* data;
+        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+        memcpy(data, indices.data(), (size_t) bufferSize);
+        vkUnmapMemory(device, stagingBufferMemory);
+    
+        createBuffer(bufferSize, 
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
+            indexBuffer, 
+            indexBufferMemory);
+    
+        // Copy the buffer into GPU memory
+        copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+    
+        // Destroy the temporary buffer
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        vkFreeMemory(device, stagingBufferMemory, nullptr);
+    }
+
+    /// @brief Provide details about every descriptor binding used in the shaders for pipeline creation
+    void createDescriptorSetLayout() {
+        VkDescriptorSetLayoutBinding uboLayoutBinding{};
+        // Specify the binding used in the shader and the type of descriptor
+        uboLayoutBinding.binding = 0;
+        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        uboLayoutBinding.descriptorCount = 1;
+        // Describe which shader stages the descriptor is referenced in
+        uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        // Only relevant for image sampling related descriptors
+        uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+
+        // Add supporting information for creating a descriptor set layout
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = 1;
+        layoutInfo.pBindings = &uboLayoutBinding;
+
+        VK_CHECK(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout));
+    }
+
+    /// @brief Use persistent mapping so we do not have to map the buffer every time we update it.
+    void createUniformBuffers() {
+        VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+    
+        // Set the buffers to their maximum size
+        uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+        uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
+        uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+    
+        // Create and map each buffer
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            createBuffer(bufferSize, 
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+                uniformBuffers[i], 
+                uniformBuffersMemory[i]);
+    
+            vkMapMemory(device, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
+        }
+    }
+
+    /// @brief 
+    /// @param currentImage 
+    void updateUniformBuffer(uint32_t currentImage) {
+        // Use crono to rotate the geometry 90*/s despite framerate
+        static auto startTime = std::chrono::high_resolution_clock::now();
+
+        // Compare start time with current time to get the amount we want to rotate
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+        // Update the models rotation and perspective
+        UniformBufferObject ubo{};
+        ubo.model = glm::rotate(glm::mat4(1.0f), 
+            time * glm::radians(90.0f), 
+            glm::vec3(0.0f, 0.0f, 1.0f));
+
+        // We decide to look at the model from above at 45*
+        ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), 
+            glm::vec3(0.0f, 0.0f, 0.0f), 
+            glm::vec3(0.0f, 0.0f, 1.0f));
+
+        // Use a perspective projection with a 45* vertical FOV
+        ubo.proj = glm::perspective(glm::radians(45.0f), 
+            swapChainExtent.width / (float) swapChainExtent.height, 
+            0.1f, 10.0f);
+
+        // Convert from OpenGL cords to Vulkan cords (Flip Y axis)
+        ubo.proj[1][1] *= -1;
+
+        // Copy data from the object to the current uniform buffer
+        memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
     }
 };
 
