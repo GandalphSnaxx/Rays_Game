@@ -21,7 +21,26 @@ using namespace std;
 #define DEBUG_ENDL
 #endif
 
-// Halt the program
-#define THROW_ERR(msg)      throw runtime_error(msg)
+// Error message macros
+#define THROW_ERR(msg)      throw runtime_error(msg);
+#define CERR(msg, var)      std::cerr << msg << var << std::endl;
+
+// Check for vulkan errors
+#define VK_CHECK(result)                                        \
+    if (result != VK_SUCCESS) {                                 \
+        CERR("Vulkan Error: ", result);                         \
+        __debugbreak();                                         \
+    }
+
+// A macro for error checking in functions that need to perform multiple functions that could return an error
+#define ERROR_RETURN(var)           \
+result = var;                       \
+if (result != VK_SUCCESS) {         \
+    DEBUG_MSG("Error: " << #var);   \
+    return result;                  \
+}
+
+// Macro for getting the size of an array
+#define ARRAY_SIZE(arr) sizeof(arr[0]) * arr.size();
 
 #endif
