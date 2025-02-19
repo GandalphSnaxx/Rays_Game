@@ -5,31 +5,38 @@
 /// @param device Shader stages are created in reference to this device
 ShaderStage::ShaderStage(const std::vector<ShaderFile> &shaderFiles, VkDevice device) {
     DEBUG_MSG("Called a ShaderStage struct constructor");
+    // Copy a pointer to the device for deconstruction
+    _device = &device;
     uint32_t numStages = shaderFiles.size();
     // Set the size of the shader stages list
     createInfo.resize(numStages);
+    _shaderModules.resize(numStages);
 
     // Iterate through the shader files and add initalize them in the shader stages list
     for (uint32_t i = 0; i < numStages; i++) {
         // Create a shader module from the shader files
-        VkShaderModule shaderModule;
+        // VkShaderModule shaderModule;
         // Initalize shaderModule in reference to device
-        VK_CHECK(_createShaderModule(&shaderFiles[i], device, &shaderModule));
+        VK_CHECK(_createShaderModule(&shaderFiles[i], device, &_shaderModules[i]));
 
         // Configure the current shader stage struct
         createInfo[i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         createInfo[i].pNext = nullptr; // Optional
         createInfo[i].flags = 0; // Optional
         createInfo[i].stage = shaderFiles[i].shaderType;
-        createInfo[i].module = shaderModule;
+        createInfo[i].module = _shaderModules[i];
         createInfo[i].pName = "main";
         createInfo[i].pSpecializationInfo = nullptr; // Optional
     }
 }
 
 /// @brief Cleans up any data used by this struct
+/// TODO: Destroy shader modules after pipeline creation
 ShaderStage::~ShaderStage() {
-    DEBUG_MSG("Called a ShaderStage struct deconstructor");
+    DEBUG_MSG("Called a ShaderStage struct deconstructor. This better be called after pipeline creation!");
+    for (auto shaderModule : _shaderModules) {
+        vkDestroyShaderModule(*_device, shaderModule, nullptr);
+    }
 }
 
 /// @brief Initalizes a shader module from a ShaderFile in reference to a device

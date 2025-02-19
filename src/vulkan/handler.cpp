@@ -5,12 +5,14 @@
 /// @param appName Name of the application
 VkHandlerClass::VkHandlerClass(const WindowInit *window_init, const char *appName, uint32_t max_frames_in_flight) : 
     // Call constructors in ascending order
-    VkUBOOverheadClass(),       // Create descriptor set layout
-    VkSwapchainClass(),         // Create swapchain, create image views, create render pass
-    VkDeviceClass(),            // Pick physical device, create logistical device
-    VkSurfaceClass(),           // Create surface
-    VkInstanceClass(appName),   // Create instance, setup debug messenger
-    VkWindowClass(window_init)  // Init window
+    VkPipelineClass(SHADER_FILES),  // Create graphics pipeline
+    VkPipelineOverheadClass(SHADER_FILES),
+    VkUBOOverheadClass(),           // Create descriptor set layout
+    VkSwapchainClass(),             // Create swapchain, create image views, create render pass
+    VkDeviceClass(),                // Pick physical device, create logistical device
+    VkSurfaceClass(),               // Create surface
+    VkInstanceClass(appName),       // Create instance, setup debug messenger
+    VkWindowClass(window_init)      // Init window
 {
     DEBUG_MSG("Called VkHandlerClass constructor");
     
@@ -24,10 +26,10 @@ VkHandlerClass::VkHandlerClass(const WindowInit *window_init, const char *appNam
     // createImageViews();
     // createRenderPass();
     // createDescriptorSetLayout();
-
     // createGraphicsPipeline();
     
     // createFramebuffers();
+
     // createCommandPool();
     // createVertexBuffer();
     // createIndexBuffer();

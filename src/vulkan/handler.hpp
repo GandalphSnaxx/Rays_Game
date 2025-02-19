@@ -8,10 +8,12 @@
 #include "devices/device.hpp"
 #include "swapchain/swapchain.hpp"
 #include "memory/memory_mgmt.hpp"
+#include "graphics_pipeline/graphics_pipeline.hpp"
 
 /// @brief A child class of every Vulkan class required to handle Vulkan
 class VkHandlerClass : 
     // Every Vulkan support class required by the handler
+    virtual public VkPipelineClass,
     virtual public VkUBOOverheadClass,
     virtual public VkSwapchainClass,
     virtual public VkDeviceClass, 

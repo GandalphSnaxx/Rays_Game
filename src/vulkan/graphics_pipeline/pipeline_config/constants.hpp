@@ -122,7 +122,18 @@ finalColor.rgb = newAlpha * newColor + (1 - newAlpha) * oldColor;
 finalColor.a = newAlpha.a;
 */
 
-// Disable color blending attachments
+// Disable any output
+const VkPipelineColorBlendAttachmentState COLOR_BLEND_ATTACHMENT_NULL = {
+    VK_FALSE,                   // blendEnable
+    VK_BLEND_FACTOR_ZERO,       // srcColorBlendFactor
+    VK_BLEND_FACTOR_ZERO,       // dstColorBlendFactor
+    VK_BLEND_OP_ADD,            // colorBlendOp
+    VK_BLEND_FACTOR_ZERO,       // srcAlphaBlendFactor
+    VK_BLEND_FACTOR_ZERO,       // dstAlphaBlendFactor
+    VK_BLEND_OP_ADD,            // alphaBlendOp
+    0                           // colorWriteMask bitfield
+};
+// Disable color blending attachments but keep the output
 const VkPipelineColorBlendAttachmentState COLOR_BLEND_ATTACHMENT_NO_BLEND = {
     VK_FALSE,                   // blendEnable
     VK_BLEND_FACTOR_ONE,        // srcColorBlendFactor
@@ -136,7 +147,7 @@ const VkPipelineColorBlendAttachmentState COLOR_BLEND_ATTACHMENT_NO_BLEND = {
     VK_COLOR_COMPONENT_B_BIT | 
     VK_COLOR_COMPONENT_A_BIT
 };
-// Enable alpha blending
+// Enable standard alpha blending
 const VkPipelineColorBlendAttachmentState COLOR_BLEND_ATTACHMENT_ALPHA_BLEND = {
     VK_TRUE,                                // blendEnable
     VK_BLEND_FACTOR_SRC_ALPHA,              // srcColorBlendFactor
@@ -149,29 +160,4 @@ const VkPipelineColorBlendAttachmentState COLOR_BLEND_ATTACHMENT_ALPHA_BLEND = {
     VK_COLOR_COMPONENT_G_BIT | 
     VK_COLOR_COMPONENT_B_BIT | 
     VK_COLOR_COMPONENT_A_BIT
-};
-
-// Color blend config section. Color blending attached globally. 
-//  References the array of structures for all of the framebuffers and allows you to set blend constants that you can use as 
-//  blend factors in the aforementioned calculations. 
-
-// Disable color blending
-const VkPipelineColorBlendStateCreateInfo COLOR_BLEND_NO_BLEND = {
-    VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,   // sType
-    nullptr, 0,                                                 // pNext, flags
-    VK_FALSE,                                                   // logicOpEnable
-    VK_LOGIC_OP_COPY,                                           // logicOp
-    0,       /* Needs to be initalized */                       // attachmentCount
-    nullptr, /* Needs to be initalized */                       // pAttachments
-    {0.0f, 0.0f, 0.0f, 0.0f}                                    // blendConstants[4]
-};
-// Bitwise combination blending
-const VkPipelineColorBlendStateCreateInfo COLOR_BLEND_LOGICAL_OP = {
-    VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,   // sType
-    nullptr, 0,                                                 // pNext, flags
-    VK_TRUE,                                                    // logicOpEnable
-    VK_LOGIC_OP_COPY,                                           // logicOp
-    0,       /* Needs to be initalized */                       // attachmentCount
-    nullptr, /* Needs to be initalized */                       // pAttachments
-    {0.0f, 0.0f, 0.0f, 0.0f}                                    // blendConstants[4]
 };

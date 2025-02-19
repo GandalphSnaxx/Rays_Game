@@ -7,7 +7,7 @@
 #include <array>
 
 /// @brief VkPipelineOverheadClass holds functions and variables for handling a graphics pipeline before initalization. VkPipelineClass is a child of VkUBOOverheadClass and VkSwapchainOverheadClass.
-///     Requires access to: _descriptorSetLayout, _renderPass
+///     Requires access to: _descriptorSetLayout, _renderPass, _device
 class VkPipelineOverheadClass : virtual public VkUBOOverheadClass, virtual public VkSwapchainOverheadClass {
     public:
     VkPipelineOverheadClass(const std::vector<ShaderFile> &shader_files);
@@ -15,8 +15,9 @@ class VkPipelineOverheadClass : virtual public VkUBOOverheadClass, virtual publi
 
     protected:
     VkPipelineLayout _pipelineLayout;
+    VkGraphicsPipelineCreateInfo _pipelineInfo;
 
-    VkGraphicsPipelineCreateInfo *_getCreateInfo() { return &_pipelineInfo; }
+    void _cleanupShaderStages() { _shaderStages.~ShaderStage(); }
 
     private:
     ShaderStage         _shaderStages;
@@ -26,39 +27,22 @@ class VkPipelineOverheadClass : virtual public VkUBOOverheadClass, virtual publi
     RasterizerState     _rasterizer;
     MultisamplingState  _multisampling;
     ColorBlendState     _colorBlending;
-
+    DynamicStateStage   _dynamicStates;
+    PipelineLayout      _pipelineLayoutInfo;
     // PipelineInfo _pipelineInfo;
-
-    VkPipelineInputAssemblyStateCreateInfo _inputAssembly{};
-    void _initInputAssembly(const VkPipelineInputAssemblyStateCreateInfo inputAssemblyType);
-
-    VkPipelineViewportStateCreateInfo _viewportState{};
-    void _initViewportState();
-    VkPipelineRasterizationStateCreateInfo _rasterizer{};
-    void _initRasterizer(const VkPipelineRasterizationStateCreateInfo rasterizerType);
-    VkPipelineMultisampleStateCreateInfo _multisampling{};
-    void _initMultisampling(const VkPipelineMultisampleStateCreateInfo multisamplingConfig);
-    VkPipelineColorBlendAttachmentState _colorBlendAttachment{};
-    void _initColorBlendAttachment(const VkPipelineColorBlendAttachmentState colorBlendAttachmentConfig);
-    VkPipelineColorBlendStateCreateInfo _colorBlending{};
-    void _initColorBlend(const bool enableLogicOp, const VkLogicOp operation);
-    VkGraphicsPipelineCreateInfo _pipelineInfo{};
-    void _initPipelineInfo();
 };
 
 /// @brief VkPipelineClass holds functions and variables related to the graphics pipeline. VkPipelineClass is a child of VkUBOOverheadClass and VkSwapchainOverheadClass.
 ///     Requires access to: _descriptorSetLayout, _renderPass
 class VkPipelineClass : virtual public VkPipelineOverheadClass {
     public:
-    VkPipelineClass();
+    VkPipelineClass(const std::vector<ShaderFile> &shader_files);
     ~VkPipelineClass();
 
     protected:
     
     private:
     VkPipeline _gfxPipeline;
-
-    VkResult _initPipeline();
 };
 
 #endif

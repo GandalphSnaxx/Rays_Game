@@ -1,17 +1,31 @@
 #include "overhead.hpp"
 #include "constants.hpp"
+#include <array>
 #include <fstream>
+
+/// @brief A struct holding VkPipelineDynamicStateCreateInfo related info for pipeline creation
+struct DynamicStateStage {
+    VkPipelineDynamicStateCreateInfo createInfo{};
+
+    DynamicStateStage(const DynamicStateList *dynamicStates);
+    ~DynamicStateStage();
+    // Delete default constructor so it is not accidentally used
+    DynamicStateStage::DynamicStateStage() = delete;
+};
 
 /// @brief A struct holding a list of VkPipelineShaderStageCreateInfo and functions for initalizing them.
 struct ShaderStage {
     std::vector<VkPipelineShaderStageCreateInfo> createInfo;
     
     ShaderStage(const std::vector<ShaderFile> &shaderFiles, VkDevice device);
+    /// TODO: Destroy shader modules after pipeline creation
     ~ShaderStage();
     // Delete default constructor so it is not accidentally used
     ShaderStage::ShaderStage() = delete;
 
     private:
+    const VkDevice *_device;
+    std::vector<VkShaderModule> _shaderModules;
     VkResult _createShaderModule(const ShaderFile *shaderFile, VkDevice device, VkShaderModule *shaderModule);
 };
 
@@ -39,7 +53,7 @@ struct InputAssembly {
 struct ViewportState {
     VkPipelineViewportStateCreateInfo createInfo{};
 
-    ViewportState(const DynamicStateList dynamicStates);
+    ViewportState(const DynamicStateList *dynamicStates);
     ~ViewportState();
     // Delete default constructor so it is not accidentally used
     ViewportState::ViewportState() = delete;
@@ -79,14 +93,26 @@ struct MultisamplingState {
     bool _aaSupported();
 };
 
+/// @brief A struct holding VkPipelineColorBlendStateCreateInfo related info for pipeline creation
 struct ColorBlendState {
     VkPipelineColorBlendStateCreateInfo createInfo{};
 
-    ColorBlendState();
+    ColorBlendState(const std::vector<VkPipelineColorBlendAttachmentState> *blendModes, const VkLogicOp logicOp);
     ~ColorBlendState();
     // Delete default constructor so it is not accidentally used
     ColorBlendState::ColorBlendState() = delete;
 
     private:
-    VkPipelineColorBlendAttachmentState _attachmentState{};
+    std::array<float, 4> _blendConstants = {0.0f, 0.0f, 0.0f, 0.0f};
+    // std::vector<VkPipelineColorBlendAttachmentState> _attachmentStates{};
+};
+
+
+struct PipelineLayout {
+    VkPipelineLayoutCreateInfo createInfo{};
+
+    PipelineLayout(const std::vector<VkDescriptorSetLayout> *descriptorSetLayouts);
+    ~PipelineLayout();
+    // Delete default constructor so it is not accidentally used
+    PipelineLayout::PipelineLayout() = delete;
 };

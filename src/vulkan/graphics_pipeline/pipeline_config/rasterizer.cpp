@@ -1,11 +1,27 @@
 #include "structs.hpp"
 
-
+/// @brief Initalizes a rasterizer state for pipeline creation
+/// @param polyMode Determines how fragments are generated for geometry. The following modes are available:
+///
+/// - VK_POLYGON_MODE_FILL: fill the area of the polygon with fragments
+///
+/// - VK_POLYGON_MODE_LINE: polygon edges are drawn as lines
+///
+/// - VK_POLYGON_MODE_POINT: polygon vertices are drawn as points
 RasterizerState::RasterizerState(const VkPolygonMode polyMode) {
     RasterizerState(polyMode, 1.0f, VK_FALSE);
 }
 
-
+/// @brief Initalizes a rasterizer state for pipeline creation
+/// @param polyMode Determines how fragments are generated for geometry. The following modes are available:
+///
+/// - VK_POLYGON_MODE_FILL: fill the area of the polygon with fragments
+///
+/// - VK_POLYGON_MODE_LINE: polygon edges are drawn as lines
+///
+/// - VK_POLYGON_MODE_POINT: polygon vertices are drawn as points
+///
+/// . @param lineWidth Line width in terms of number of fragments
 RasterizerState::RasterizerState(const VkPolygonMode polyMode, const float lineWidth) {
     RasterizerState(polyMode, lineWidth, VK_FALSE);
 }
