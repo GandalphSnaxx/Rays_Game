@@ -1,32 +1,7 @@
 #ifndef HELLO_TRIANGLE_HPP__
 #define HELLO_TRIANGLE_HPP__
 
-#define VK_USE_PLATFORM_WIN32_KHR
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-#define GLFW_EXPOSE_NATIVE_WIN32
-#include <GLFW/glfw3native.h>
 
-#define GLM_FORCE_RADIANS
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
-#include <iostream>
-#include <vector>
-#include <stdexcept>
-#include <cstdlib>
-#include <optional>
-#include <map>
-#include <set>
-#include <cstdint> // Necessary for uint32_t
-#include <limits> // Necessary for std::numeric_limits
-#include <algorithm> // Necessary for std::clamp
-#include <fstream>
-#include <array>
-#include <chrono>
 
 // #include "vulkan/vk_handler.hpp"
 #include "vulkan/handler.hpp"
@@ -34,6 +9,26 @@
 
 // Print the extensions available when uncommented
 // #define PRINT_EXTENSIONS
+
+// Example triangle verticies
+const std::vector<Vertex> triangleVertices = {
+    // All values are 0.0f to 1.0f
+    // {{pos x, pos y}, {r, g, b}}
+    {{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
+    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+};
+
+// Example rectangle verticies
+const std::vector<Vertex> vertices = {
+    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+    {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+};
+const std::vector<uint32_t> indices = {
+    0, 1, 2, 2, 3, 0
+};
 
 /// @brief A class for holding the Hello Triangle application
 class HelloTriangleApplication {

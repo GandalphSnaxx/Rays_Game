@@ -26,10 +26,10 @@ using namespace std;
 #define CERR(msg, var)      std::cerr << msg << var << std::endl;
 
 // Check for vulkan errors
-#define VK_CHECK(result)                                        \
-    if (result != VK_SUCCESS) {                                 \
-        CERR("Vulkan Error: ", result);                         \
-        __debugbreak();                                         \
+#define VK_CHECK(result)                \
+    if (result != VK_SUCCESS) {         \
+        CERR("Vulkan Error: ", result); \
+        __debugbreak();                 \
     }
 
 // A macro for error checking in functions that need to perform multiple functions that could return an error

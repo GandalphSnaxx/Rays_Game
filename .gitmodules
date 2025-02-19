@@ -4,6 +4,6 @@
 [submodule "Libraries/glm"]
 	path = Libraries/glm
 	url = git@github.com:g-truc/glm.git
-[submodule ".\\Libraries\\stb"]
-	path = .\\Libraries\\stb
+[submodule "Libraries/stb"]
+	path = Libraries/stb
 	url = git@github.com:nothings/stb.git

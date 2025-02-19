@@ -1,9 +1,16 @@
 #include "graphics_pipeline.hpp"
 
+/// @brief Configure pipeline information for pipeline creation
+/// @param shader_files A list of shader files to be added to the pipeline
 VkPipelineOverheadClass::VkPipelineOverheadClass(const std::vector<ShaderFile> &shader_files) {
     DEBUG_MSG("Called VkPipelineOverheadClass constructor");
     _initShaderStages(shader_files);
     _initVertexInput();
+    _initInputAssembly(INPUT_ASSEMBLY_TRIANGLE_LIST);
+    _initViewportState();
+    _initRasterizer(RASTERIZER_FILL);
+    _initMultisampling(MULTISAMPLING_DISABLE);
+    _initColorBlendAttachment(COLOR_BLEND_ATTACHMENT_NO_BLEND);
 
     _initPipelineInfo();
 }
@@ -11,51 +18,6 @@ VkPipelineOverheadClass::VkPipelineOverheadClass(const std::vector<ShaderFile> &
 VkPipelineOverheadClass::~VkPipelineOverheadClass() {
     DEBUG_MSG("Called VkPipelineOverheadClass deconstructor");
     _shaderStages.~vector();
-}
-
-
-/// @brief Read a binary file and return the raw binary
-/// @param filename The file to be read
-/// @return The file's raw binary
-std::vector<char> VkPipelineOverheadClass::_readFile(const std::string& filename) {
-    // Open a file at the end so we can get its size
-    std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
-    // Make sure the file opened correctly
-    if (!file.is_open()) {
-        THROW_ERR("failed to open file!");
-    }
-
-    // Get file size
-    size_t fileSize = (size_t) file.tellg();
-    std::vector<char> buffer(fileSize);
-
-    // Goto the beginning of the file and read all of the bytes at once
-    file.seekg(0);
-    file.read(buffer.data(), fileSize);
-
-    // Check if we are reading the files correctly
-    DEBUG_VAR(fileSize);
-
-    // Close the file and return the read data
-    file.close();
-    return buffer;
-}
-
-/// @brief Adds raw shader bytecode to a shader module
-/// @param code A pointer to the raw bytecode to be passed into the shader module
-/// @return VkShaderModule
-VkShaderModule VkPipelineOverheadClass::_createShaderModule(const std::vector<char>& code) {
-    VkShaderModuleCreateInfo createInfo{};
-    // Set the configuration for the shader module
-    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    createInfo.codeSize = code.size();
-    createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-
-    // Create the shader module
-    VkShaderModule shaderModule;
-    VK_CHECK(vkCreateShaderModule(_device, &createInfo, nullptr, &shaderModule));
-    return shaderModule;
 }
 
 /// @brief Initalizes shader stage information for each shader file passed in
@@ -84,75 +46,63 @@ void VkPipelineOverheadClass::_initShaderStages(const std::vector<ShaderFile> &s
     }
 }
 
-/// @brief Initalizes vertex input info struct
+/// @brief Initalizes vertex input data with binding descriptions and attribute descriptions
 void VkPipelineOverheadClass::_initVertexInput() {
     _vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    
-    auto bindingDescription = Vertex::getBindingDescription();
-    auto attributeDescriptions = Vertex::getAttributeDescriptions();
-
-    _vertexInputInfo.vertexBindingDescriptionCount = 1;
-    _vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-    _vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-    _vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+    _vertexInputInfo.pNext = nullptr;
+    _vertexInputInfo.flags = 0;
+    _vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(_vertexBindingDescriptions.size());
+    _vertexInputInfo.pVertexBindingDescriptions = _vertexBindingDescriptions.data();
+    _vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(_attributeDescriptions.size());
+    _vertexInputInfo.pVertexAttributeDescriptions = _attributeDescriptions.data();
 }
 
-/// @brief Initalizes the struct describing what kind of geometry will be drawn and should primitive restart be enabled
-void VkPipelineOverheadClass::_initInputAssembly() {
-    _inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    _inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    _inputAssembly.primitiveRestartEnable = VK_FALSE;
+/// @brief Initalizes the input assembly type for pipeline creation
+void VkPipelineOverheadClass::_initInputAssembly(const VkPipelineInputAssemblyStateCreateInfo inputAssemblyType) {
+    _inputAssembly = inputAssemblyType;
 }
 
-/// @brief Describes what region of the framebuffer the output will be rendered to. Typically (0, 0) to (width, height). 
-///     We want this to be dynamic. Actual viewports and scissor rectangles will be set up at draw time
+/// @brief Initalizes scissor and viewport states for pipeline creation
 void VkPipelineOverheadClass::_initViewportState() {
     _viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    _viewportState.viewportCount = 1;
-    _viewportState.scissorCount = 1;
+    _viewportState.pNext = nullptr;
+    _viewportState.flags = 0;
+    if (DYNAMIC_STATES.enabledStateBytefield & EN_DYNAMIC_SCISSOR) {
+        // Set scissors to be dynamic
+        _viewportState.scissorCount = 1;
+        _viewportState.pScissors = nullptr;
+    } if (DYNAMIC_STATES.enabledStateBytefield & EN_DYNAMIC_VIEWPORT) {
+        // Set viewport to be dynamic
+        _viewportState.viewportCount = 1;
+        _viewportState.pViewports = nullptr;
+    } else {
+        /// TODO: Configure non-dynamic viewport state
+        _viewportState.viewportCount = 1;
+        _viewportState.pViewports = nullptr;
+        _viewportState.scissorCount = 1;
+        _viewportState.pScissors = nullptr;
+    }
 }
 
 /// @brief The rasterizer takes geometry shaped by the verticies from the vertex shader and turns it into fragments to be shaded by the fragment shader
-void VkPipelineOverheadClass::_initRasterizer() {
-    _rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    _rasterizer.depthClampEnable = VK_FALSE;
-    _rasterizer.rasterizerDiscardEnable = VK_FALSE;
-    _rasterizer.polygonMode = VK_POLYGON_MODE_FILL;  // Can also be edges, or points. May require a gpu feature
-    _rasterizer.lineWidth = 1.0f;
-    // Set the backface culling to work with Vulkan cords
-    _rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-    _rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-    _rasterizer.depthBiasEnable = VK_FALSE;
-    _rasterizer.depthBiasConstantFactor = 0.0f; // Optional
-    _rasterizer.depthBiasClamp = 0.0f; // Optional
-    _rasterizer.depthBiasSlopeFactor = 0.0f; // Optional
+void VkPipelineOverheadClass::_initRasterizer(const VkPipelineRasterizationStateCreateInfo rasterizerType) {
+    /// TODO: Check gpu features for certain rasterizer modes
+    _rasterizer = rasterizerType;
 }
 
 /// @brief Initalizes multisampling configuration. One of the ways to perform anti-aliasing. Enabling requires a gpu feature. Disabled for now
-void VkPipelineOverheadClass::_initMultisampling() {
-    _multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    _multisampling.sampleShadingEnable = VK_FALSE;
-    _multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-    _multisampling.minSampleShading = 1.0f; // Optional
-    _multisampling.pSampleMask = nullptr; // Optional
-    _multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
-    _multisampling.alphaToOneEnable = VK_FALSE; // Optional
+void VkPipelineOverheadClass::_initMultisampling(const VkPipelineMultisampleStateCreateInfo multisamplingConfig) {
+    /// TODO: Check gpu features to enable certain multisampling modes
+    _multisampling = multisamplingConfig;
 }
 
 /// @brief Mix or combine color with the fragment shader output
-void VkPipelineOverheadClass::_initColorBlendAttachment() {
-    _colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    _colorBlendAttachment.blendEnable = VK_FALSE;
-    _colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-    _colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-    _colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD; // Optional
-    _colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-    _colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-    _colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
+void VkPipelineOverheadClass::_initColorBlendAttachment(const VkPipelineColorBlendAttachmentState colorBlendAttachmentConfig) {
+    _colorBlendAttachment = colorBlendAttachmentConfig;
 }
 
 /// @brief References the array of structures for all framebuffers and allows setting blend constants
-void VkPipelineOverheadClass::_initColorBlend() {
+void VkPipelineOverheadClass::_initColorBlend(const VkPipelineColorBlendStateCreateInfo colorBlendConfig) {
     _colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     _colorBlending.logicOpEnable = VK_FALSE;
     _colorBlending.logicOp = VK_LOGIC_OP_COPY;
