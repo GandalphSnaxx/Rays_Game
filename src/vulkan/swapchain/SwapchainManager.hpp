@@ -52,8 +52,6 @@ private:
     VkSwapchainKHR              swapchain_;
     VkFormat                    swapchainImageFormat_;
     VkExtent2D                  swapchainExtent_;
-    // VkDevice                    device_; // Copy of VkDevice for deconstruction
-    // VkPhysicalDevice            physicalDevice_;
     std::vector<VkImage>        swapchainImages_;
     std::vector<VkImageView>    swapchainImageViews_;
     QueueFamilyIndices          queueFamilyIndices_;

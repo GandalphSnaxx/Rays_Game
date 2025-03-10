@@ -114,10 +114,6 @@ VkResult SwapchainManager::init_(DeviceManager *pDeviceMgr) {
 
 void SwapchainManager::cleanupSwapchain_() {
     if (getDevice() == nullptr) THROW_ERR("SwapchainManager ERROR: Swapchain init failed! Can't deconstruct!");
-    // Destroy buffers
-    // for (size_t i = 0; i < swapchainFramebuffers_.size(); i++) {
-    //     vkDestroyFramebuffer(device_, swapchainFramebuffers_[i], nullptr);
-    // }
 
     // Destroy image views
     for (size_t i = 0; i < swapchainImageViews_.size(); i++) {

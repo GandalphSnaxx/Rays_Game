@@ -36,11 +36,11 @@ VkResult DeviceManager::init_(VulkanInstance *instance, SurfaceManager *surface)
     pInstance_ = instance;
     pSurface_ = surface;
 
-    DEBUG_MSG("\tPicking a physical device...");
+    // DEBUG_MSG("\tPicking a physical device...");
     VkResult result = pickPhysicalDevice_();
     if (result != VK_SUCCESS) return result;
 
-    DEBUG_MSG("\tCreating a logical device...");
+    // DEBUG_MSG("\tCreating a logical device...");
     result = createLogicalDevice_();
     if (result != VK_SUCCESS) return result;
 
@@ -88,6 +88,7 @@ VkResult DeviceManager::pickPhysicalDevice_() {
         THROW_ERR("DeviceManager ERROR: Failed to find a suitable GPU!");
     }
     DEBUG_MSG("\t\tBest score: " << bestScore);
+    DEBUG_MSG("\tPhysical device picked!");
     return result;
 }
 
@@ -113,6 +114,7 @@ VReturn_t DeviceManager::rateDevice_(const VkPhysicalDevice &queriedDevice) {
 
 VkResult DeviceManager::createLogicalDevice_() {
     VkResult result;
+    DEBUG_MSG("\tCreating a logical device...");
     QueueFamilyIndices indices(physicalDevice_, pSurface_->getSurface());
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -153,4 +155,7 @@ VkResult DeviceManager::createLogicalDevice_() {
 
     vkGetDeviceQueue(device_, indices.graphicsFamily.value(), 0, &graphicsQueue_);
     vkGetDeviceQueue(device_, indices.presentFamily.value(),  0, &presentQueue_ );
+
+    DEBUG_MSG("\tLogical device created!");
+    return result;
 }

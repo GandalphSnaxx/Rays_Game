@@ -32,7 +32,6 @@ class DeviceManager {
     bool             vLayersEn        () const { return pInstance_->vLayersEn();   }
     std::vector<const char*>getVLayers() const { return pInstance_->getVLayers();  }
     VkSurfaceKHR     getSurface       () const { return pSurface_->getSurface();   }
-    VkInstance       getInstance      () const { return pSurface_->getInstance();  }
     GLFWwindow*      getPWindow       () const { return pSurface_->getPWindow();   }
     size_t           getMaxFIF        () const { return pSurface_->getMaxFIF();    }
     

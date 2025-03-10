@@ -52,7 +52,7 @@ VkResult FrameBufferManager::init_(RenderPassManager *pRdPassMgr) {
         framebufferInfo.layers          = 1;
     
         result = vkCreateFramebuffer(pRenderPassManager_->getDevice(), &framebufferInfo, nullptr, &framebuffers_[i]);
-        if (result != VK_SUCCESS) return result;
+        if (result != VK_SUCCESS) { DEBUG_MSG("Vulkan Error: " << static_cast<uint32_t>(result)); return result; }
     }
 
     DEBUG_MSG("\tInit done!");

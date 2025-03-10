@@ -34,7 +34,7 @@ public:
     bool                            validLayers       () const { return pSwapMgr_->validLayers();      }
     VkSurfaceKHR                    getSurface        () const { return pSwapMgr_->getSurface();       }
     GLFWwindow*                     getPWindow        () const { return pSwapMgr_->getPWindow();       }
-    size_t                          maxFIF            () const { return pSwapMgr_->maxFIF();           }
+    size_t                          getMaxFIF         () const { return pSwapMgr_->getMaxFIF();        }
 
 private:
     VkRenderPass        renderPass_;
