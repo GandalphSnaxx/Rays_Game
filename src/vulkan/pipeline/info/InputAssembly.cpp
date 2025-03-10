@@ -5,7 +5,7 @@
  * @brief 
  */
 
-InputAssembly::InputAssembly(const VkPrimitiveTopology topology, const VkBool32 restartEnable = VK_FALSE) {
+InputAssembly::InputAssembly(const VkPrimitiveTopology topology, const VkBool32 restartEnable) {
     // DEBUG_MSG("Called a InputAssembly struct constructor");
     createInfo_ = {  // Configure the assembly header
         VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,    // sType

@@ -97,7 +97,8 @@ VkResult DescriptorManager::createSets_() {
 
     // Allocate descriptor set handles
     sets_.resize(pUBOMgr_->getMaxFIF());
-    VK_CHECK(vkAllocateDescriptorSets(pUBOMgr_->getDevice(), &allocInfo, sets_.data()));
+    result = vkAllocateDescriptorSets(pUBOMgr_->getDevice(), &allocInfo, sets_.data());
+    if (result != VK_SUCCESS) return result;
 
     // Populate every descriptor
     for (size_t i = 0; i < pUBOMgr_->getMaxFIF(); i++) {

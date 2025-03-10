@@ -59,6 +59,8 @@ VkResult UniformBufferManager::update(const uint32_t &currentImage, const VkExte
 
     // Copy data from the object to the current uniform buffer
     memcpy(uniformBuffersMapped_[currentImage], &ubo, sizeof(ubo));
+
+    return VK_SUCCESS;
 }
 
 /// @section Private Member Functions

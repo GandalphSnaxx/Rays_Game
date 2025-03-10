@@ -7,8 +7,8 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#include "instance/VulkanInstance.hpp"
-#include "window/WindowManager.hpp"
+#include "vulkan/instance/VulkanInstance.hpp"
+#include "vulkan/window/WindowManager.hpp"
 #include "raysDebugHelper.hpp"
 
 /// @brief VkSurfaceClass is a child class of VkOverheadClass. Contains functions related to a VkSurface

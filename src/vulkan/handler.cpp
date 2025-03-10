@@ -92,6 +92,7 @@ const std::vector<Vertex> &vertices,
 const std::vector<uint32_t> &indices) {
     DEBUG_MSG("Initalizing VkHandler with a function...\n");
     VK_CHECK(init_(windowInit, appName, maxFramesInFlight, vertices, indices));
+    return VK_SUCCESS;
 }
 
 void VkHandler::mainLoop() {
@@ -239,6 +240,7 @@ const std::vector<uint32_t> &indices) {
     currentFrame_ = 0;
     maxFIF_ = maxFramesInFlight;
     DEBUG_MSG("\nVkHandler: Init done!");
+    return VK_SUCCESS;
 }
 
 VkResult VkHandler::recordCommandBuffer(const uint32_t &currentFrame, const uint32_t &imageIndex) {

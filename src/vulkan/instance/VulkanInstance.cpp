@@ -16,6 +16,10 @@ VulkanInstance::VulkanInstance(const std::vector<const char*> &validationLayers,
     // VK_CHECK(setupDebugMessenger_());
 }
 
+VulkanInstance::VulkanInstance() {
+    DEBUG_MSG("Called VulkanInstance default constructor");
+}
+
 /// @brief Cleans up this Vulkan instance
 VulkanInstance::~VulkanInstance() {
     DEBUG_MSG("Deconstructing VulkanInstance...");
@@ -61,12 +65,12 @@ VkResult VulkanInstance::createInstance_(const std::vector<const char*> &validat
     // Configure application info
     /// TODO: Configure app version
     VkApplicationInfo appInfo{};
-    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = appName;
-    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.pEngineName = ENGINE_NAME;
-    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_0;
+    appInfo.sType               = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    appInfo.pApplicationName    = appName;
+    appInfo.applicationVersion  = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.pEngineName         = ENGINE_NAME;
+    appInfo.engineVersion       = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.apiVersion          = VK_API_VERSION_1_0;
 
     // Configure instance creator info
     VkInstanceCreateInfo createInfo{};
@@ -75,8 +79,8 @@ VkResult VulkanInstance::createInstance_(const std::vector<const char*> &validat
     
     // Add required extensions to the instance
     auto extensions = getRequiredExtensions_();
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-    createInfo.ppEnabledExtensionNames = extensions.data();
+    createInfo.enabledExtensionCount    = static_cast<uint32_t>(extensions.size());
+    createInfo.ppEnabledExtensionNames  = extensions.data();
 
     // Add any validation layers
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};

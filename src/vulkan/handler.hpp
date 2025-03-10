@@ -60,10 +60,10 @@ public:
     
     void mainLoop();
     void drawFrame();
-    operator  bool() const { return glfwWindowShouldClose(window_.getWindow()) != 0; }
+    operator  bool() const { return glfwWindowShouldClose(window_.getWindow()) == 0; }
     /// @brief Checks if the window should not close
-    /// @return `TRUE` if the window should close, `FALSE` if the window does not need to close.
-    bool operator!() const { return glfwWindowShouldClose(window_.getWindow()) == 0; }
+    /// @return `FALSE` if the window should close, `TRUE` if the window does not need to close.
+    bool operator!() const { return glfwWindowShouldClose(window_.getWindow()) != 0; }
 
 private:
 /// @section Vulkan Handler Internal Classes
@@ -90,7 +90,7 @@ private:
     const std::vector<const char*> VALIDATION_LAYERS = {
         "VK_LAYER_KHRONOS_validation" };
 #else
-    const std::vector<const char*> VALIDATION_LAYERS;
+    const std::vector<const char*> VALIDATION_LAYERS = {};
 #endif
 
     VkResult init_(

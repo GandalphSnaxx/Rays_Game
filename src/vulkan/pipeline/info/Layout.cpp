@@ -8,8 +8,8 @@
 Layout::Layout(
 const VkDevice &device,
 VkPipelineLayout *pPipelineLayout,
-const std::vector<VkDescriptorSetLayout> &descriptorSetLayouts = {},
-const VkAllocationCallbacks *pAllocator = nullptr) {
+const std::vector<VkDescriptorSetLayout> &descriptorSetLayouts,
+const VkAllocationCallbacks *pAllocator) {
     // DEBUG_MSG("Called Layout constructor");
 
     createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

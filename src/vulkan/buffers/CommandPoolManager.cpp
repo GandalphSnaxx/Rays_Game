@@ -10,7 +10,7 @@ CommandPoolManager::CommandPoolManager(
 RenderPassManager *pRdPassMgr, 
 const size_t &maxFIF,
 const uint32_t &qFamilyIdx, 
-const VkCommandPoolCreateFlagBits &flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT) {
+const VkCommandPoolCreateFlagBits &flags) {
     DEBUG_MSG("Called CommandPoolManager init constructor");
     VK_CHECK(init_(pRdPassMgr, maxFIF, qFamilyIdx, flags));
 }
@@ -30,7 +30,7 @@ VkResult CommandPoolManager::init(
 RenderPassManager *pRdPassMgr, 
 const size_t &maxFIF,
 const uint32_t &qFamilyIdx, 
-const VkCommandPoolCreateFlagBits &flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT) {
+const VkCommandPoolCreateFlagBits &flags) {
     DEBUG_MSG("Initalizing CommandPoolManager with a function...");
     return init_(pRdPassMgr, maxFIF, qFamilyIdx, flags);
 }
@@ -41,7 +41,7 @@ VkResult CommandPoolManager::init_(
 RenderPassManager *pRdPassMgr, 
 const size_t &maxFIF,
 const uint32_t &qFamilyIdx, 
-const VkCommandPoolCreateFlagBits &flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT) {
+const VkCommandPoolCreateFlagBits &flags) {
     DEBUG_MSG("\tInitalizing CommandPoolManager...");
     pRdPassMgr_ = pRdPassMgr; // Link a device manager to this class
     maxFIF_ = maxFIF;

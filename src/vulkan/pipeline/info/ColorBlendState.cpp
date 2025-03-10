@@ -6,8 +6,8 @@
  */
 
 ColorBlendState::ColorBlendState(
-const std::vector<VkPipelineColorBlendAttachmentState> &blendModes = {COLOR_BLEND_ATTACHMENT_NO_BLEND}, 
-const VkLogicOp &logicOp = VK_LOGIC_OP_CLEAR) {
+const std::vector<VkPipelineColorBlendAttachmentState> &blendModes, 
+const VkLogicOp &logicOp) {
 
     // Get the number of color blend attachments
     uint32_t numAttachments = blendModes.size();

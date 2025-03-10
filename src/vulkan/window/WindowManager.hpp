@@ -1,24 +1,11 @@
 #pragma once
-
-#define VK_USE_PLATFORM_WIN32_KHR
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
-// Copilot reccommended section:
-
-/// @brief A structure for initializing a window
-/// @param width Initial window width
-/// @param height Initial window height
-/// @param title Initial window title, UTF-8 encoding
-/// @param monitor Fullscreen monitor, or `NULL` for windowed
-/// @param share A window to share resources with, or `NULL`
-struct WindowInit {
-    int width;
-    int height;
-    const char *title;
-    GLFWmonitor *monitor = nullptr;
-    GLFWwindow *share = nullptr;
-};
+/**
+ * @file WindowManager.hpp
+ * @brief A class to handle window creation and management.
+ * @author Ray Richter
+ * @note This file is part of the Ray's Engine project.
+ */
+#include "WindowInit.hpp"
 
 /// @brief A class to handle window creation and management.
 class WindowManager {

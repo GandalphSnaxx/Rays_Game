@@ -41,6 +41,7 @@ VkResult SwapchainManager::remake() {
     init_(pDeviceMgr_, pSurfaceMgr_);
     // createImageViews();
     // createFramebuffers();
+    return VK_SUCCESS;
 }
 
 /// @section Private Member Functions

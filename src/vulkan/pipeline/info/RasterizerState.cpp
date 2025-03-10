@@ -6,9 +6,9 @@
  */
 
 RasterizerState::RasterizerState(
-const VkPolygonMode polyMode = VK_POLYGON_MODE_FILL, 
-const float lineWidth = 1.0f, 
-const VkBool32 depthClampEnable = VK_FALSE) {
+const VkPolygonMode polyMode, 
+const float lineWidth, 
+const VkBool32 depthClampEnable) {
     // DEBUG_MSG("Called a RasterizerState struct constructor");
     /// TODO: check for lineWidth > 1.0f gpu support
     if (lineWidth > 1.0f) { THROW_ERR("Line width > 1.0 requires a gpu feature!"); }

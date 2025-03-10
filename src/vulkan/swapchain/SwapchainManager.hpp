@@ -14,7 +14,7 @@ class SwapchainManager {
 public:
     SwapchainManager (DeviceManager*, SurfaceManager*);
     SwapchainManager ();
-    ~SwapchainManager() { cleanupSwapchain_(); }
+    ~SwapchainManager();
 
     VkResult init(DeviceManager*, SurfaceManager*);
     VkResult remake();

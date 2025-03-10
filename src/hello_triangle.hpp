@@ -5,9 +5,10 @@
  * @brief My hello triangle application that uses my Vulkan engine.
  */
 
+// #include <Validator.hpp>
 #include <Validator.hpp>
 #include "hello_triangle_config.hpp"
-#define EN_VALIDATION_LAYERS
+// #define EN_VALIDATION_LAYERS
 #include "vulkan/handler.hpp"
 #include "raysDebugHelper.hpp"
 
@@ -42,14 +43,8 @@ class HelloTriangleApplication {
     // Define frame buffer size
     const uint32_t MAX_FRAMES_IN_FLIGHT_ = 2;
 
-    // Private member variables
+    // Vulkan handler with constructor arguments
     VkHandler vulkanHandler_ = {WINDOW_, APP_NAME_, MAX_FRAMES_IN_FLIGHT_, VERTICES, INDICES};
-    // VkHandler(
-    //     const WindowInit &windowInit, 
-    //     const char* appName, 
-    //     const uint32_t &maxFramesInFlight, 
-    //     const std::vector<Vertex> &vertices,
-    //     const std::vector<uint32_t> &indices);
 
     // Private member functions
     // void initWindow();

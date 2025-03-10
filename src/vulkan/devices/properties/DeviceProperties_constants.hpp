@@ -12,162 +12,6 @@
 
 /// @section Device properties validator setup
 
-/// @brief A class that validates VkPhysicalDeviceProperties.
-class VkPhysicalDevicePropertiesValidator {
-public:
-    VReturn_t validate(const VkPhysicalDeviceProperties &qProperties) const {
-        VReturn_t score = 0;
-        score += apiVersion_        (qProperties.apiVersion         );
-        score += driverVersion_     (qProperties.driverVersion      );
-        score += vendorID_          (qProperties.vendorID           );
-        score += deviceID_          (qProperties.deviceID           );
-        score += deviceType_        (qProperties.deviceType         );
-        score += deviceName_        (qProperties.deviceName         );
-        score += pipelineCacheUUID_ (qProperties.pipelineCacheUUID  );
-        score += limits_            (qProperties.limits             );
-        score += sparseProperties_  (qProperties.sparseProperties   );
-        return score; }
-    VReturn_t operator()(const VkPhysicalDeviceProperties &qProperties) const { return validate(qProperties); }
-private:
-    VKeyedList_t<uint32_t>                                  apiVersion_         {}; // Any
-    VKeyedList_t<uint32_t>                                  driverVersion_      {}; // Any
-    VKeyedList_t<uint32_t>                                  vendorID_           {}; // Any
-    VKeyedList_t<uint32_t>                                  deviceID_           {}; // Any
-    VKeyedList_t<VkPhysicalDeviceType>                      deviceType_         {{  // Keyed List
-        {VKey_t::BLACKLIST, VK_PHYSICAL_DEVICE_TYPE_OTHER           },
-        {10               , VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU  },
-        {100              , VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU    },
-        {20               , VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU     },
-        {1                , VK_PHYSICAL_DEVICE_TYPE_CPU             },
-        {VKey_t::BLACKLIST, VK_PHYSICAL_DEVICE_TYPE_MAX_ENUM        }           }}; // End Keyed List
-    VKeyedList_t<char[VK_MAX_PHYSICAL_DEVICE_NAME_SIZE]>    deviceName_         {}; // Any
-    VKeyedList_t<uint8_t[VK_UUID_SIZE]>                     pipelineCacheUUID_  {}; // Any
-    VkPhysicalDeviceLimitsValidator                         limits_             {}; // Limits set in sub class
-    VkPhysicalDeviceSparsePropertiesValidator               sparseProperties_   {}; // Limits set in sub class
-};
-
-/// @brief A class that validates VkPhysicalDeviceFeatures.
-class VkPhysicalDeviceFeaturesValidator {
-public:
-    VReturn_t validate(const VkPhysicalDeviceFeatures &qFeatures) const {
-        VReturn_t score = 0;
-        score += validateBool_ (qFeatures.robustBufferAccess);
-        score += validateBool_ (qFeatures.fullDrawIndexUint32);
-        score += validateBool_ (qFeatures.imageCubeArray);
-        score += validateBool_ (qFeatures.independentBlend);
-        score += validateBool_ (qFeatures.geometryShader);
-        score += validateBool_ (qFeatures.tessellationShader);
-        score += validateBool_ (qFeatures.sampleRateShading);
-        score += validateBool_ (qFeatures.dualSrcBlend);
-        score += validateBool_ (qFeatures.logicOp);
-        score += validateBool_ (qFeatures.multiDrawIndirect);
-        score += validateBool_ (qFeatures.drawIndirectFirstInstance);
-        score += validateBool_ (qFeatures.depthClamp);
-        score += validateBool_ (qFeatures.depthBiasClamp);
-        score += validateBool_ (qFeatures.fillModeNonSolid);
-        score += validateBool_ (qFeatures.depthBounds);
-        score += validateBool_ (qFeatures.wideLines);
-        score += validateBool_ (qFeatures.largePoints);
-        score += validateBool_ (qFeatures.alphaToOne);
-        score += validateBool_ (qFeatures.multiViewport);
-        score += validateBool_ (qFeatures.samplerAnisotropy);
-        score += validateBool_ (qFeatures.textureCompressionETC2);
-        score += validateBool_ (qFeatures.textureCompressionASTC_LDR);
-        score += validateBool_ (qFeatures.textureCompressionBC);
-        score += validateBool_ (qFeatures.occlusionQueryPrecise);
-        score += validateBool_ (qFeatures.pipelineStatisticsQuery);
-        score += validateBool_ (qFeatures.vertexPipelineStoresAndAtomics);
-        score += validateBool_ (qFeatures.fragmentStoresAndAtomics);
-        score += validateBool_ (qFeatures.shaderTessellationAndGeometryPointSize);
-        score += validateBool_ (qFeatures.shaderImageGatherExtended);
-        score += validateBool_ (qFeatures.shaderStorageImageExtendedFormats);
-        score += validateBool_ (qFeatures.shaderStorageImageMultisample);
-        score += validateBool_ (qFeatures.shaderStorageImageReadWithoutFormat);
-        score += validateBool_ (qFeatures.shaderStorageImageWriteWithoutFormat);
-        score += validateBool_ (qFeatures.shaderUniformBufferArrayDynamicIndexing);
-        score += validateBool_ (qFeatures.shaderSampledImageArrayDynamicIndexing);
-        score += validateBool_ (qFeatures.shaderStorageBufferArrayDynamicIndexing);
-        score += validateBool_ (qFeatures.shaderStorageImageArrayDynamicIndexing);
-        score += validateBool_ (qFeatures.shaderClipDistance);
-        score += validateBool_ (qFeatures.shaderCullDistance);
-        score += validateBool_ (qFeatures.shaderFloat64);
-        score += validateBool_ (qFeatures.shaderInt64);
-        score += validateBool_ (qFeatures.shaderInt16);
-        score += validateBool_ (qFeatures.shaderResourceResidency);
-        score += validateBool_ (qFeatures.shaderResourceMinLod);
-        score += validateBool_ (qFeatures.sparseBinding);
-        score += validateBool_ (qFeatures.sparseResidencyBuffer);
-        score += validateBool_ (qFeatures.sparseResidencyImage2D);
-        score += validateBool_ (qFeatures.sparseResidencyImage3D);
-        score += validateBool_ (qFeatures.sparseResidency2Samples);
-        score += validateBool_ (qFeatures.sparseResidency4Samples);
-        score += validateBool_ (qFeatures.sparseResidency8Samples);
-        score += validateBool_ (qFeatures.sparseResidency16Samples);
-        score += validateBool_ (qFeatures.sparseResidencyAliased);
-        score += validateBool_ (qFeatures.variableMultisampleRate);
-        score += validateBool_ (qFeatures.inheritedQueries);
-        return score; }
-    VReturn_t operator()(const VkPhysicalDeviceFeatures &qFeatures) const { return validate(qFeatures); }
-private:
-    VKeyedList_t<VkBool32> validateBool_ {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // For more specific scoring, uncomment and edit the keyed list definitions below.
-    // VKeyedList_t<VkBool32> robustBufferAccess_                      {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> fullDrawIndexUint32_                     {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> imageCubeArray_                          {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> independentBlend_                        {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> geometryShader_                          {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> tessellationShader_                      {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> sampleRateShading_                       {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> dualSrcBlend_                            {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> logicOp_                                 {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> multiDrawIndirect_                       {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> drawIndirectFirstInstance_               {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> depthClamp_                              {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> depthBiasClamp_                          {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> fillModeNonSolid_                        {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> depthBounds_                             {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> wideLines_                               {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> largePoints_                             {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> alphaToOne_                              {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> multiViewport_                           {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> samplerAnisotropy_                       {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> textureCompressionETC2_                  {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> textureCompressionASTC_LDR_              {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> textureCompressionBC_                    {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> occlusionQueryPrecise_                   {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> pipelineStatisticsQuery_                 {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> vertexPipelineStoresAndAtomics_          {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> fragmentStoresAndAtomics_                {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> shaderTessellationAndGeometryPointSize_  {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> shaderImageGatherExtended_               {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> shaderStorageImageExtendedFormats_       {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> shaderStorageImageMultisample_           {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> shaderStorageImageReadWithoutFormat_     {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> shaderStorageImageWriteWithoutFormat_    {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> shaderUniformBufferArrayDynamicIndexing_ {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> shaderSampledImageArrayDynamicIndexing_  {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> shaderStorageBufferArrayDynamicIndexing_ {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> shaderStorageImageArrayDynamicIndexing_  {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> shaderClipDistance_                      {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> shaderCullDistance_                      {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> shaderFloat64_                           {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> shaderInt64_                             {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> shaderInt16_                             {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> shaderResourceResidency_                 {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> shaderResourceMinLod_                    {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> sparseBinding_                           {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> sparseResidencyBuffer_                   {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> sparseResidencyImage2D_                  {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> sparseResidencyImage3D_                  {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> sparseResidency2Samples_                 {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> sparseResidency4Samples_                 {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> sparseResidency8Samples_                 {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> sparseResidency16Samples_                {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> sparseResidencyAliased_                  {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> variableMultisampleRate_                 {{{0, VK_FALSE}, {1, VK_TRUE}}};
-    // VKeyedList_t<VkBool32> inheritedQueries_                        {{{0, VK_FALSE}, {1, VK_TRUE}}};
-};
-
 /// @brief A class that validates VkPhysicalDeviceLimits.
 class VkPhysicalDeviceLimitsValidator {
 public:
@@ -398,7 +242,7 @@ private:
     VKeyedList_t<VkDeviceSize>          optimalBufferCopyRowPitchAlignment_             {}; // Any
     VKeyedList_t<VkDeviceSize>          nonCoherentAtomSize_                            {}; // Any
 };
-
+    
 /// @brief A class that validates VkPhysicalDeviceSparseProperties.
 class VkPhysicalDeviceSparsePropertiesValidator {
 public:
@@ -422,4 +266,160 @@ private:
         {0, VK_FALSE}, {1, VK_TRUE}}}; // True = 1 point, false != fail
     VKeyedList_t<VkBool32> residencyNonResidentStrict_{{
         {0, VK_FALSE}, {1, VK_TRUE}}}; // True = 1 point, false != fail
+};
+
+/// @brief A class that validates VkPhysicalDeviceProperties.
+class VkPhysicalDevicePropertiesValidator {
+public:
+    VReturn_t validate(const VkPhysicalDeviceProperties &qProperties) const {
+        VReturn_t score = 0;
+        score += apiVersion_        (qProperties.apiVersion         );
+        score += driverVersion_     (qProperties.driverVersion      );
+        score += vendorID_          (qProperties.vendorID           );
+        score += deviceID_          (qProperties.deviceID           );
+        score += deviceType_        (qProperties.deviceType         );
+        // score += deviceName_        (qProperties.deviceName         );
+        // score += pipelineCacheUUID_ (qProperties.pipelineCacheUUID  );
+        score += limits_            (qProperties.limits             );
+        score += sparseProperties_  (qProperties.sparseProperties   );
+        return score; }
+    VReturn_t operator()(const VkPhysicalDeviceProperties &qProperties) const { return validate(qProperties); }
+private:
+    VKeyedList_t<uint32_t>                                  apiVersion_         {}; // Any
+    VKeyedList_t<uint32_t>                                  driverVersion_      {}; // Any
+    VKeyedList_t<uint32_t>                                  vendorID_           {}; // Any
+    VKeyedList_t<uint32_t>                                  deviceID_           {}; // Any
+    VKeyedList_t<VkPhysicalDeviceType>                      deviceType_         {{  // Keyed List
+        {VKey_t::BLACKLIST, VK_PHYSICAL_DEVICE_TYPE_OTHER           },
+        {10               , VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU  },
+        {100              , VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU    },
+        {20               , VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU     },
+        {1                , VK_PHYSICAL_DEVICE_TYPE_CPU             },
+        {VKey_t::BLACKLIST, VK_PHYSICAL_DEVICE_TYPE_MAX_ENUM        }           }}; // End Keyed List
+    // VKeyedList_t<char[VK_MAX_PHYSICAL_DEVICE_NAME_SIZE]>    deviceName_         {}; // Any
+    // VKeyedList_t<uint8_t[VK_UUID_SIZE]>                     pipelineCacheUUID_  {}; // Any
+    VkPhysicalDeviceLimitsValidator                         limits_             {}; // Limits set in sub class
+    VkPhysicalDeviceSparsePropertiesValidator               sparseProperties_   {}; // Limits set in sub class
+};
+
+/// @brief A class that validates VkPhysicalDeviceFeatures.
+class VkPhysicalDeviceFeaturesValidator {
+public:
+    VReturn_t validate(const VkPhysicalDeviceFeatures &qFeatures) const {
+        VReturn_t score = 0;
+        score += validateBool_ (qFeatures.robustBufferAccess);
+        score += validateBool_ (qFeatures.fullDrawIndexUint32);
+        score += validateBool_ (qFeatures.imageCubeArray);
+        score += validateBool_ (qFeatures.independentBlend);
+        score += validateBool_ (qFeatures.geometryShader);
+        score += validateBool_ (qFeatures.tessellationShader);
+        score += validateBool_ (qFeatures.sampleRateShading);
+        score += validateBool_ (qFeatures.dualSrcBlend);
+        score += validateBool_ (qFeatures.logicOp);
+        score += validateBool_ (qFeatures.multiDrawIndirect);
+        score += validateBool_ (qFeatures.drawIndirectFirstInstance);
+        score += validateBool_ (qFeatures.depthClamp);
+        score += validateBool_ (qFeatures.depthBiasClamp);
+        score += validateBool_ (qFeatures.fillModeNonSolid);
+        score += validateBool_ (qFeatures.depthBounds);
+        score += validateBool_ (qFeatures.wideLines);
+        score += validateBool_ (qFeatures.largePoints);
+        score += validateBool_ (qFeatures.alphaToOne);
+        score += validateBool_ (qFeatures.multiViewport);
+        score += validateBool_ (qFeatures.samplerAnisotropy);
+        score += validateBool_ (qFeatures.textureCompressionETC2);
+        score += validateBool_ (qFeatures.textureCompressionASTC_LDR);
+        score += validateBool_ (qFeatures.textureCompressionBC);
+        score += validateBool_ (qFeatures.occlusionQueryPrecise);
+        score += validateBool_ (qFeatures.pipelineStatisticsQuery);
+        score += validateBool_ (qFeatures.vertexPipelineStoresAndAtomics);
+        score += validateBool_ (qFeatures.fragmentStoresAndAtomics);
+        score += validateBool_ (qFeatures.shaderTessellationAndGeometryPointSize);
+        score += validateBool_ (qFeatures.shaderImageGatherExtended);
+        score += validateBool_ (qFeatures.shaderStorageImageExtendedFormats);
+        score += validateBool_ (qFeatures.shaderStorageImageMultisample);
+        score += validateBool_ (qFeatures.shaderStorageImageReadWithoutFormat);
+        score += validateBool_ (qFeatures.shaderStorageImageWriteWithoutFormat);
+        score += validateBool_ (qFeatures.shaderUniformBufferArrayDynamicIndexing);
+        score += validateBool_ (qFeatures.shaderSampledImageArrayDynamicIndexing);
+        score += validateBool_ (qFeatures.shaderStorageBufferArrayDynamicIndexing);
+        score += validateBool_ (qFeatures.shaderStorageImageArrayDynamicIndexing);
+        score += validateBool_ (qFeatures.shaderClipDistance);
+        score += validateBool_ (qFeatures.shaderCullDistance);
+        score += validateBool_ (qFeatures.shaderFloat64);
+        score += validateBool_ (qFeatures.shaderInt64);
+        score += validateBool_ (qFeatures.shaderInt16);
+        score += validateBool_ (qFeatures.shaderResourceResidency);
+        score += validateBool_ (qFeatures.shaderResourceMinLod);
+        score += validateBool_ (qFeatures.sparseBinding);
+        score += validateBool_ (qFeatures.sparseResidencyBuffer);
+        score += validateBool_ (qFeatures.sparseResidencyImage2D);
+        score += validateBool_ (qFeatures.sparseResidencyImage3D);
+        score += validateBool_ (qFeatures.sparseResidency2Samples);
+        score += validateBool_ (qFeatures.sparseResidency4Samples);
+        score += validateBool_ (qFeatures.sparseResidency8Samples);
+        score += validateBool_ (qFeatures.sparseResidency16Samples);
+        score += validateBool_ (qFeatures.sparseResidencyAliased);
+        score += validateBool_ (qFeatures.variableMultisampleRate);
+        score += validateBool_ (qFeatures.inheritedQueries);
+        return score; }
+    VReturn_t operator()(const VkPhysicalDeviceFeatures &qFeatures) const { return validate(qFeatures); }
+private:
+    VKeyedList_t<VkBool32> validateBool_ {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // For more specific scoring, uncomment and edit the keyed list definitions below.
+    // VKeyedList_t<VkBool32> robustBufferAccess_                      {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> fullDrawIndexUint32_                     {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> imageCubeArray_                          {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> independentBlend_                        {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> geometryShader_                          {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> tessellationShader_                      {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> sampleRateShading_                       {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> dualSrcBlend_                            {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> logicOp_                                 {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> multiDrawIndirect_                       {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> drawIndirectFirstInstance_               {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> depthClamp_                              {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> depthBiasClamp_                          {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> fillModeNonSolid_                        {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> depthBounds_                             {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> wideLines_                               {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> largePoints_                             {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> alphaToOne_                              {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> multiViewport_                           {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> samplerAnisotropy_                       {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> textureCompressionETC2_                  {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> textureCompressionASTC_LDR_              {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> textureCompressionBC_                    {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> occlusionQueryPrecise_                   {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> pipelineStatisticsQuery_                 {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> vertexPipelineStoresAndAtomics_          {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> fragmentStoresAndAtomics_                {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> shaderTessellationAndGeometryPointSize_  {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> shaderImageGatherExtended_               {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> shaderStorageImageExtendedFormats_       {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> shaderStorageImageMultisample_           {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> shaderStorageImageReadWithoutFormat_     {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> shaderStorageImageWriteWithoutFormat_    {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> shaderUniformBufferArrayDynamicIndexing_ {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> shaderSampledImageArrayDynamicIndexing_  {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> shaderStorageBufferArrayDynamicIndexing_ {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> shaderStorageImageArrayDynamicIndexing_  {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> shaderClipDistance_                      {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> shaderCullDistance_                      {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> shaderFloat64_                           {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> shaderInt64_                             {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> shaderInt16_                             {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> shaderResourceResidency_                 {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> shaderResourceMinLod_                    {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> sparseBinding_                           {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> sparseResidencyBuffer_                   {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> sparseResidencyImage2D_                  {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> sparseResidencyImage3D_                  {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> sparseResidency2Samples_                 {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> sparseResidency4Samples_                 {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> sparseResidency8Samples_                 {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> sparseResidency16Samples_                {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> sparseResidencyAliased_                  {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> variableMultisampleRate_                 {{{0, VK_FALSE}, {1, VK_TRUE}}};
+    // VKeyedList_t<VkBool32> inheritedQueries_                        {{{0, VK_FALSE}, {1, VK_TRUE}}};
 };
