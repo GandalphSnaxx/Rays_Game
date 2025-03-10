@@ -27,7 +27,7 @@ const std::vector<uint32_t> &indices) :
     swapchain_      (&device_, &surface_),
     device_         (&instance_),
     surface_        (&instance_, &window_, maxFramesInFlight),
-    instance_       (VALIDATION_LAYERS, appName),
+    instance_       (VALIDATION_LAYERS, appName, VALIDATION_LAYERS_EN),
     window_         (windowInit)
 {
     DEBUG_MSG("Called VkHandler initializer constructor");
@@ -201,7 +201,7 @@ const uint32_t &maxFramesInFlight,
 const std::vector<Vertex> &vertices,
 const std::vector<uint32_t> &indices) {
     window_         .init(windowInit);
-    instance_       .init(VALIDATION_LAYERS, appName);
+    instance_       .init(VALIDATION_LAYERS, appName, VALIDATION_LAYERS_EN);
     surface_        .init(&instance_, &window_, maxFramesInFlight);
     device_         .init(&instance_);
     swapchain_      .init(&device_, &surface_);

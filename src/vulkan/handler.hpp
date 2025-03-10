@@ -89,8 +89,10 @@ private:
 #ifdef EN_VALIDATION_LAYERS
     const std::vector<const char*> VALIDATION_LAYERS = {
         "VK_LAYER_KHRONOS_validation" };
+    const bool VALIDATION_LAYERS_EN = true;
 #else
     const std::vector<const char*> VALIDATION_LAYERS = {};
+    const bool VALIDATION_LAYERS_EN = false;
 #endif
 
     VkResult init_(

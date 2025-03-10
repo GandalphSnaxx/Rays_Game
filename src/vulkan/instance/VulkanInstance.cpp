@@ -9,9 +9,9 @@
 /// @param validationLayers A list of validation layers to enable as `std::vector<const char*>`. 
 /// If the list is empty, validation layers are disabled
 /// @param appName Name of the application as `const char*`
-VulkanInstance::VulkanInstance(const std::vector<const char*> &validationLayers, const char *appName) {
+VulkanInstance::VulkanInstance(const std::vector<const char*> &validationLayers, const char *appName, const bool &enValLayers) {
     DEBUG_MSG("Initalizing VulkanInstance with a constructor...");
-    VK_CHECK(createInstance_(validationLayers, appName));
+    VK_CHECK(createInstance_(validationLayers, appName, enValLayers));
     VK_CHECK(setupValidationLayers_());
     // VK_CHECK(setupDebugMessenger_());
 }
@@ -32,10 +32,10 @@ VulkanInstance::~VulkanInstance() {
 /// If the list is empty, validation layers are disabled
 /// @param appName Name of the application as `const char*`
 /// @return `VkResult`
-VkResult VulkanInstance::init(const std::vector<const char*> &validationLayers, const char *appName) {
+VkResult VulkanInstance::init(const std::vector<const char*> &validationLayers, const char *appName, const bool &enValLayers) {
     DEBUG_MSG("Initalizing VulkanInstance with a function...");
     VkResult result;
-    ERROR_RETURN(createInstance_(validationLayers, appName));
+    ERROR_RETURN(createInstance_(validationLayers, appName, enValLayers));
     ERROR_RETURN(setupValidationLayers_());
     // ERROR_RETURN(setupDebugMessenger_());
     return result;
@@ -49,17 +49,16 @@ VkResult VulkanInstance::init(const std::vector<const char*> &validationLayers, 
 /// @param validationLayers A list of `const char*`s
 /// @param appName Application name as `const char*`
 /// @return `VkResult`
-VkResult VulkanInstance::createInstance_(const std::vector<const char*> &validationLayers, const char *appName) {
+VkResult VulkanInstance::createInstance_(const std::vector<const char*> &validationLayers, const char *appName, const bool &enValLayers) {
     DEBUG_MSG("\tCreating a Vulkan Instance");
     VkResult result;
+    enValidationLayers_ = enValLayers;
     // Get the number of validation layers to enable
     const uint32_t numValidationLayers = static_cast<uint32_t>(validationLayers.size());
-    if (numValidationLayers != 0) { 
+    if (enValidationLayers_) { 
         DEBUG_MSG("\t\tValidation Layers Enabled");
-        enValidationLayers_ = true;
     } else {
         DEBUG_MSG("\t\tValidation Layers Disabled");
-        enValidationLayers_ = false;
     }
 
     // Configure application info

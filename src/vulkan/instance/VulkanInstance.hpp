@@ -10,13 +10,13 @@
 /// @brief A class to handle Vulkan instance creation, validation layers, and debug messenger.
 class VulkanInstance {
 public:
-    VulkanInstance (const std::vector<const char*> &validationLayers, const char *appName);
+    VulkanInstance (const std::vector<const char*> &validationLayers, const char *appName, const bool &enValLayers = false);
     VulkanInstance ();
     ~VulkanInstance();
 
     // Public functions
 
-    VkResult    init        (const std::vector<const char*> &validationLayers, const char *appName);
+    VkResult    init        (const std::vector<const char*> &validationLayers, const char *appName, const bool &enValLayers = false);
     VkInstance  getInstance () const { return instance_; }
     bool        validLayers () const { return enValidationLayers_; }
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -30,7 +30,7 @@ private:
     VkInstance                  instance_;                   // Read only
     VkDebugUtilsMessengerEXT    debugMessenger_;             // No read/write
 
-    VkResult createInstance_(const std::vector<const char*> &validationLayers, const char *appName);
+    VkResult createInstance_(const std::vector<const char*> &validationLayers, const char *appName, const bool &enValLayers);
     VkResult setupValidationLayers_();
     // VkResult setupDebugMessenger_();
     bool checkValidationLayerSupport_(const std::vector<const char*> &validationLayers);
