@@ -54,11 +54,12 @@ VkResult VulkanInstance::createInstance_(const std::vector<const char*> &validat
     VkResult result;
     enValidationLayers_ = enValLayers;
     // Get the number of validation layers to enable
-    const uint32_t numValidationLayers = static_cast<uint32_t>(validationLayers.size());
+    uint32_t numValidationLayers = static_cast<uint32_t>(validationLayers.size());
     if (enValidationLayers_) { 
         DEBUG_MSG("\t\tValidation Layers Enabled");
     } else {
         DEBUG_MSG("\t\tValidation Layers Disabled");
+        numValidationLayers = 0;
     }
 
     // Configure application info
