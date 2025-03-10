@@ -71,6 +71,7 @@ VkResult DeviceManager::pickPhysicalDevice_() {
     VReturn_t bestScore = 0;
     for (const auto &device : devices) {
         VReturn_t thisScore = rateDevice_(device);
+        DEBUG_MSG("\t\tDevice found with score: " << thisScore);
         if (thisScore > bestScore) {
             bestScore = thisScore;
             physicalDevice_ = device;
@@ -81,6 +82,7 @@ VkResult DeviceManager::pickPhysicalDevice_() {
         // ERROR_RETURN(VK_ERROR_DEVICE_LOST);
         THROW_ERR("DeviceManager ERROR: Failed to find a suitable GPU!");
     }
+    DEBUG_MSG("\t\tBest score: " << bestScore);
     return result;
 }
 

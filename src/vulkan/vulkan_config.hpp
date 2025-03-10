@@ -2,22 +2,20 @@
 /* ************************* *
  * Vulkan configuration data *
  * ************************* */
-#include "vulkan_structs.hpp"
 
-// Shader file names, locations, and types
-const std::vector<ShaderFile> SHADER_FILES = {
-    {"src/shaders/fragment/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT},
-    {"src/shaders/vertex/vert.spv",   VK_SHADER_STAGE_VERTEX_BIT}
+#include <vector>
+#include <vulkan/vulkan.h>
+#include "vulkan/pipeline/info/ShaderFile.hpp"
+
+const std::vector<const char*> DEVICE_EXTENSIONS = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-// Dynamic states for pipeline creation
-#define EN_DYNAMIC_VIEWPORT 0b0001
-#define EN_DYNAMIC_SCISSOR  0b0010
-// We want this to be dynamic. Actual viewports and scissor rectangles will be set up at draw time
-const DynamicStateList DYNAMIC_STATES = {
-    EN_DYNAMIC_VIEWPORT | EN_DYNAMIC_SCISSOR,
-    {
-        VK_DYNAMIC_STATE_VIEWPORT,  // No performance penalty
-        VK_DYNAMIC_STATE_SCISSOR    // No performance penalty
-    }
-};
+#ifdef EN_VALIDATION_LAYERS
+const std::vector<const char*> VALIDATION_LAYERS = {
+    "VK_LAYER_KHRONOS_validation" };
+constexpr bool VALIDATION_LAYERS_EN = true;
+#else
+const std::vector<const char*> VALIDATION_LAYERS = {};
+constexpr bool VALIDATION_LAYERS_EN = false;
+#endif

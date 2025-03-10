@@ -4,7 +4,7 @@
  * @author Ray Richter
  * @brief VkHandler class declaration.
  */
-
+#include "vulkan_config.hpp"
 #include "window/WindowManager.hpp"
 #include "instance/VulkanInstance.hpp"
 #include "surface/SurfaceManager.hpp"
@@ -50,6 +50,8 @@ public:
     /// @param windowInit Initial window parameters.
     /// @param appName Application name as UTF-8 `char*`.
     /// @param maxFramesInFlight Maximum frames in flight.
+    /// @param vertices Vertex information list.
+    /// @param indices Index information list.
     /// @return `VkResult`
     VkResult init(
         const WindowInit &windowInit, 
@@ -84,16 +86,6 @@ private:
     SyncManager             sync_;
     uint32_t                currentFrame_;
     size_t                  maxFIF_;
-
-/// @section Vulkan Configuration Constants
-#ifdef EN_VALIDATION_LAYERS
-    const std::vector<const char*> VALIDATION_LAYERS = {
-        "VK_LAYER_KHRONOS_validation" };
-    const bool VALIDATION_LAYERS_EN = true;
-#else
-    const std::vector<const char*> VALIDATION_LAYERS = {};
-    const bool VALIDATION_LAYERS_EN = false;
-#endif
 
     VkResult init_(
         const WindowInit&, 
