@@ -10,10 +10,14 @@
 #include <iostream>
 #include <FlagField.hpp>
 
+const std::vector<VkDynamicState> DYNAMIC_STATES = {
+    VK_DYNAMIC_STATE_VIEWPORT,
+    VK_DYNAMIC_STATE_SCISSOR};
+
 /// @brief A struct holding VkPipelineDynamicStateCreateInfo related info for pipeline creation
 struct DynamicStateStage {
 public:
-    DynamicStateStage (const std::vector<VkDynamicState> &stages);
+    DynamicStateStage (const std::vector<VkDynamicState> &stages = DYNAMIC_STATES);
     ~DynamicStateStage();
     // Delete default constructor so it is not accidentally used
     DynamicStateStage::DynamicStateStage() = delete;

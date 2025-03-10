@@ -24,6 +24,8 @@ public:
     VkFormat                        getScImageFormat  () const { return pSwapMgr_->getScImageFormat(); }
     VkExtent2D                      getScExtent       () const { return pSwapMgr_->getScExtent();      }
     const std::vector<VkImage>&     getScImages       () const { return pSwapMgr_->getScImages();      }
+    VkImage              getScImage(const size_t &index) const { return pSwapMgr_->getScImage(index);  }
+    VkImageView      getScImageView(const size_t &index) const { return pSwapMgr_->getScImageView(index); }
     const std::vector<VkImageView>& getScImageViews   () const { return pSwapMgr_->getScImageViews();  }
     QueueFamilyIndices              getQFamIdx        () const { return pSwapMgr_->getQFamIdx();       }
     VkPhysicalDevice                getPhysicalDevice () const { return pSwapMgr_->getPhysicalDevice();}
@@ -35,6 +37,8 @@ public:
     VkSurfaceKHR                    getSurface        () const { return pSwapMgr_->getSurface();       }
     GLFWwindow*                     getPWindow        () const { return pSwapMgr_->getPWindow();       }
     size_t                          getMaxFIF         () const { return pSwapMgr_->getMaxFIF();        }
+    size_t                          getImageSize      () const { return pSwapMgr_->getImageSize();     }
+    size_t                          getViewsSize      () const { return pSwapMgr_->getViewsSize();     }
 
 private:
     VkRenderPass        renderPass_;
