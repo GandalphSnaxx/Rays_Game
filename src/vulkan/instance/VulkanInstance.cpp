@@ -10,10 +10,11 @@
 /// If the list is empty, validation layers are disabled
 /// @param appName Name of the application as `const char*`
 VulkanInstance::VulkanInstance(const std::vector<const char*> &validationLayers, const char *appName, const bool &enValLayers) {
-    DEBUG_MSG("Initalizing VulkanInstance with a constructor...");
+    DEBUG_MSG("Called VulkanInstance init constructor");
     VK_CHECK(createInstance_(validationLayers, appName, enValLayers));
     VK_CHECK(setupValidationLayers_());
     // VK_CHECK(setupDebugMessenger_());
+    DEBUG_MSG("VulkanInstance initalized!");
 }
 
 VulkanInstance::VulkanInstance() {
@@ -33,11 +34,16 @@ VulkanInstance::~VulkanInstance() {
 /// @param appName Name of the application as `const char*`
 /// @return `VkResult`
 VkResult VulkanInstance::init(const std::vector<const char*> &validationLayers, const char *appName, const bool &enValLayers) {
-    DEBUG_MSG("Initalizing VulkanInstance with a function...");
+    DEBUG_MSG("Called VulkanInstance init function");
     VkResult result;
-    ERROR_RETURN(createInstance_(validationLayers, appName, enValLayers));
-    ERROR_RETURN(setupValidationLayers_());
-    // ERROR_RETURN(setupDebugMessenger_());
+    result = createInstance_(validationLayers, appName, enValLayers);
+    if (result != VK_SUCCESS) return result;
+    result = setupValidationLayers_();
+    if (result != VK_SUCCESS) return result;
+    // result = setupDebugMessenger_();
+    // if (result != VK_SUCCESS) return result;
+
+    DEBUG_MSG("VulkanInstance initalized!");
     return result;
 }
 
@@ -50,17 +56,20 @@ VkResult VulkanInstance::init(const std::vector<const char*> &validationLayers, 
 /// @param appName Application name as `const char*`
 /// @return `VkResult`
 VkResult VulkanInstance::createInstance_(const std::vector<const char*> &validationLayers, const char *appName, const bool &enValLayers) {
-    DEBUG_MSG("\tCreating a Vulkan Instance");
+    DEBUG_MSG("\tInitalizing VulkanInstance...");
     VkResult result;
     enValidationLayers_ = enValLayers;
+    validationLayers_ = validationLayers;
+
     // Get the number of validation layers to enable
-    uint32_t numValidationLayers = static_cast<uint32_t>(validationLayers.size());
+    uint32_t numValidationLayers = static_cast<uint32_t>(validationLayers_.size());
     if (enValidationLayers_) { 
         DEBUG_MSG("\t\tValidation Layers Enabled");
     } else {
         DEBUG_MSG("\t\tValidation Layers Disabled");
         numValidationLayers = 0;
     }
+    DEBUG_MSG("\t\tNumber of validation layers: " << numValidationLayers);
 
     // Configure application info
     /// TODO: Configure app version
@@ -86,7 +95,7 @@ VkResult VulkanInstance::createInstance_(const std::vector<const char*> &validat
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
     createInfo.enabledLayerCount = numValidationLayers;
     if (enValidationLayers_) {
-        createInfo.ppEnabledLayerNames = validationLayers.data();
+        createInfo.ppEnabledLayerNames = validationLayers_.data();
         populateDebugMessengerCreateInfo_(debugCreateInfo);
         createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
     } else {
@@ -94,6 +103,7 @@ VkResult VulkanInstance::createInstance_(const std::vector<const char*> &validat
     }
 
     // Initalize the instance
+    DEBUG_MSG("\tDone!");
     return vkCreateInstance(&createInfo, nullptr, &instance_);
 }
 

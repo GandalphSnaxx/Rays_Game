@@ -12,11 +12,11 @@
 
 class SwapchainManager {
 public:
-    SwapchainManager (DeviceManager*, SurfaceManager*);
+    SwapchainManager (DeviceManager*);
     SwapchainManager ();
     ~SwapchainManager();
 
-    VkResult init(DeviceManager*, SurfaceManager*);
+    VkResult init(DeviceManager*);
     VkResult remake();
 
     VkSwapchainKHR                  getSwapchain     () const { return swapchain_;            }
@@ -29,12 +29,12 @@ public:
     VkDevice                        getDevice        () const { return pDeviceMgr_->getDevice();         }
     VkQueue                         getGraphicsQueue () const { return pDeviceMgr_->getGraphicsQueue();  }
     VkQueue                         getPresentQueue  () const { return pDeviceMgr_->getPresentQueue();   }
-    VkInstance                      getInstance      () const { return pDeviceMgr_->getInstance(); }
-    bool                            validLayers      () const { return pDeviceMgr_->validLayers(); }
-    VkSurfaceKHR                    getSurface       () const { return pSurfaceMgr_->getSurface(); }
-    // VkInstance                   getInstance      () const { return pSurfaceMgr_->getInstance();}
-    GLFWwindow*                     getPWindow       () const { return pSurfaceMgr_->getPWindow(); }
-    size_t                          maxFIF           () const { return pSurfaceMgr_->maxFIF();     }
+    VkInstance                      getInstance      () const { return pDeviceMgr_->getInstance();}
+    bool                            validLayers      () const { return pDeviceMgr_->vLayersEn();  }
+    VkSurfaceKHR                    getSurface       () const { return pDeviceMgr_->getSurface(); }
+    // VkInstance                   getInstance      () const { return pDeviceMgr_->getInstance();}
+    GLFWwindow*                     getPWindow       () const { return pDeviceMgr_->getPWindow(); }
+    size_t                          getMaxFIF        () const { return pDeviceMgr_->getMaxFIF();  }
 
 private:
     struct SupportDetails_ { public:
@@ -58,11 +58,10 @@ private:
     std::vector<VkImageView>    swapchainImageViews_;
     QueueFamilyIndices          queueFamilyIndices_;
     DeviceManager*              pDeviceMgr_;
-    SurfaceManager*             pSurfaceMgr_;
     // VkCommandPool               commandPool_;
     // std::vector<VkFramebuffer>  swapchainFramebuffers_; // Moved to buffer manager
 
-    VkResult            init_                   (DeviceManager*, SurfaceManager*);
+    VkResult            init_                   (DeviceManager*);
     void                cleanupSwapchain_       ();
     VkSurfaceFormatKHR  chooseSwapSurfaceFormat_(const std::vector<VkSurfaceFormatKHR>&);
     VkPresentModeKHR    chooseSwapPresentMode_  (const std::vector<VkPresentModeKHR>&);

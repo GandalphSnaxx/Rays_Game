@@ -24,8 +24,8 @@ const std::vector<uint32_t> &indices) :
     pipeline_       (&renderPass_, &descLayout_),
     descLayout_     (&device_),
     renderPass_     (&swapchain_),
-    swapchain_      (&device_, &surface_),
-    device_         (&instance_),
+    swapchain_      (&device_),
+    device_         (&instance_, &surface_),
     surface_        (&instance_, &window_, maxFramesInFlight),
     instance_       (VALIDATION_LAYERS, appName, VALIDATION_LAYERS_EN),
     window_         (windowInit)
@@ -203,8 +203,8 @@ const std::vector<uint32_t> &indices) {
     window_         .init(windowInit);
     instance_       .init(VALIDATION_LAYERS, appName, VALIDATION_LAYERS_EN);
     surface_        .init(&instance_, &window_, maxFramesInFlight);
-    device_         .init(&instance_);
-    swapchain_      .init(&device_, &surface_);
+    device_         .init(&instance_, &surface_);
+    swapchain_      .init(&device_);
     renderPass_     .init(&swapchain_);
     descLayout_     .init(&device_);
     pipeline_       .init(&renderPass_, &descLayout_);

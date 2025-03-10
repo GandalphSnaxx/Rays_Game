@@ -2,12 +2,12 @@
 
 /// @section Constructors and Deconstructor
 
-SwapchainManager::SwapchainManager (DeviceManager *pDeviceMgr, SurfaceManager *pSurfaceMgr) {
-    DEBUG_MSG("Called SwapchainManager constructor init");
-    VK_CHECK(init_(pDeviceMgr, pSurfaceMgr));
+SwapchainManager::SwapchainManager(DeviceManager *pDeviceMgr) {
+    DEBUG_MSG("Called SwapchainManager init constructor");
+    VK_CHECK(init_(pDeviceMgr));
 }
 
-SwapchainManager::SwapchainManager () {
+SwapchainManager::SwapchainManager() {
     DEBUG_MSG("Called SwapchainManager default constructor");
 }
 
@@ -19,18 +19,18 @@ SwapchainManager::~SwapchainManager() {
 
 /// @section Public Member Functions
 
-VkResult SwapchainManager::init(DeviceManager *pDeviceMgr, SurfaceManager *pSurfaceMgr) {
-    DEBUG_MSG("Called SwapchainManager external init");
-    return init_(pDeviceMgr, pSurfaceMgr);
+VkResult SwapchainManager::init(DeviceManager *pDeviceMgr) {
+    DEBUG_MSG("Called SwapchainManager init function");
+    return init_(pDeviceMgr);
 }
 
 VkResult SwapchainManager::remake() {
     // Handle minimization
     int width = 0, height = 0;
-    glfwGetFramebufferSize(pSurfaceMgr_->getPWindow(), &width, &height);
+    glfwGetFramebufferSize(pDeviceMgr_->getPWindow(), &width, &height);
     // Idle while the window is minimized
     while (width == 0 || height == 0) {
-        glfwGetFramebufferSize(pSurfaceMgr_->getPWindow(), &width, &height);
+        glfwGetFramebufferSize(pDeviceMgr_->getPWindow(), &width, &height);
         glfwWaitEvents();
     }
 
@@ -38,7 +38,7 @@ VkResult SwapchainManager::remake() {
 
     cleanupSwapchain_();
 
-    init_(pDeviceMgr_, pSurfaceMgr_);
+    init_(pDeviceMgr_);
     // createImageViews();
     // createFramebuffers();
     return VK_SUCCESS;
@@ -46,14 +46,9 @@ VkResult SwapchainManager::remake() {
 
 /// @section Private Member Functions
 
-VkResult SwapchainManager::init_(DeviceManager *pDeviceMgr, SurfaceManager *pSurfaceMgr) {
+VkResult SwapchainManager::init_(DeviceManager *pDeviceMgr) {
     DEBUG_MSG("\tInitalizing SwapchainManager...");
     pDeviceMgr_ = pDeviceMgr;
-    pSurfaceMgr_ = pSurfaceMgr;
-    // static_assert(pDeviceMgr_->getInstance() == pSurfaceMgr_->getInstance());
-    if (pDeviceMgr_->getInstance() != pSurfaceMgr_->getInstance()) { 
-        DEBUG_MSG("SwapchainManager ERROR: Device and Surface managers must have the same Instance manager!");
-        return VK_ERROR_INITIALIZATION_FAILED; }
 
     VkResult result;
     SupportDetails_ swapchainSupport{getPhysicalDevice(), getSurface()};
@@ -113,7 +108,7 @@ VkResult SwapchainManager::init_(DeviceManager *pDeviceMgr, SurfaceManager *pSur
     // result = createCommandPool_(indices);
     // if (result != VK_SUCCESS) return result;
 
-    DEBUG_MSG("\tSuccess!");
+    DEBUG_MSG("\tDone!");
     return result;
 }
 

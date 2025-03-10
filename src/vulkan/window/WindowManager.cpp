@@ -4,7 +4,7 @@
 /// @brief Initalizes `GLFW` for Vulkan with a constructor.
 /// @param `*window_init` A pointer to inital window parameters for window creation 
 WindowManager::WindowManager(const WindowInit &windowInit) {
-    DEBUG_MSG("Initalizing WindowManager with a constructor...");
+    DEBUG_MSG("Called WindowManager init constructor");
     VK_CHECK(init_(windowInit));
 }
 
@@ -36,7 +36,7 @@ WindowManager::~WindowManager() {
 ///
 /// . @return VkResult
 VkResult WindowManager::init(const WindowInit &windowInit) {
-    DEBUG_MSG("Initalizing WindowManager with a function...");
+    DEBUG_MSG("Called WindowManager init function...");
     return init_(windowInit);
 }
 
@@ -45,7 +45,7 @@ VkResult WindowManager::init(const WindowInit &windowInit) {
 /// @param height Inital window height as `int`
 /// @param title Inital window title as `UTF-8` encoded `const char*`
 VkResult WindowManager::init(const int width, const int height, const char* title) {
-    DEBUG_MSG("Initalizing WindowManager with a function...");
+    DEBUG_MSG("Called WindowManager init function...");
     if (width < 1 || height < 1 || title == "") { THROW_ERR("Initial window parameters out of bounds!"); }
     const WindowInit windowInit{width, height, title, nullptr, nullptr};
     return init_(windowInit);
@@ -77,6 +77,7 @@ VkResult WindowManager::init_(const WindowInit &windowInit) {
     glfwSetWindowUserPointer(window_, this);
     glfwSetFramebufferSizeCallback(window_, framebufferResizeCallback_);
 
+    DEBUG_MSG("\tDone!");
     return VK_SUCCESS;
 }
 
