@@ -7,3 +7,9 @@
 [submodule "Libraries/stb"]
 	path = Libraries/stb
 	url = git@github.com:nothings/stb.git
+[submodule "Libraries/Validator"]
+	path = Libraries/Validator
+	url = git@github.com:GandalphSnaxx/Validator.git
+[submodule ".\\Libraries\\FlagField"]
+	path = .\\Libraries\\FlagField
+	url = git@github.com:GandalphSnaxx/FlagField-Manager.git

@@ -33,14 +33,14 @@ using namespace std;
     }
 
 // A macro for error checking in functions that need to perform multiple functions that could return an error
-#define ERROR_RETURN(var)           \
-result = var;                       \
-if (result != VK_SUCCESS) {         \
-    DEBUG_MSG("Error: " << #var);   \
-    return result;                  \
-}
+#define ERROR_RETURN(var)                                                   \
+result = var;                                                               \
+if (result != VK_SUCCESS) {                                                 \
+    DEBUG_MSG("Vulkan Error: " << result << " | In function: " << #var);    \
+    return result;                                                          \
+}                                                                           \
 
 // Macro for getting the size of an array
-#define ARRAY_SIZE(arr) sizeof(arr[0]) * arr.size();
+#define ARRAY_SIZE(arr) sizeof(arr[0]) * arr.size()
 
 #endif

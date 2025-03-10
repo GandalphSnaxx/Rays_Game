@@ -5,9 +5,7 @@
             "includePath": [
                 "${default}",
                 "${workspaceFolder}/src/**",
-                "${workspaceFolder}/Libraries/glfw",
-                "${workspaceFolder}/Libraries/glm",
-                "${workspaceFolder}/Libraries/stb"
+                "${workspaceFolder}/Libraries/**"
             ],
             "defines": [
                 "_DEBUG",

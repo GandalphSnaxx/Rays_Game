@@ -1,12 +1,13 @@
-#include "vulkan_structs.hpp"
+#pragma once
 /* ************************* *
  * Vulkan configuration data *
  * ************************* */
+#include "vulkan_structs.hpp"
 
 // Shader file names, locations, and types
 const std::vector<ShaderFile> SHADER_FILES = {
     {"src/shaders/fragment/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT},
-    {"src/shaders/vertex/vert.spv", VK_SHADER_STAGE_VERTEX_BIT}
+    {"src/shaders/vertex/vert.spv",   VK_SHADER_STAGE_VERTEX_BIT}
 };
 
 // Dynamic states for pipeline creation

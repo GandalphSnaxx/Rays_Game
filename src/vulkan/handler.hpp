@@ -1,35 +1,103 @@
-#ifndef VKUKAN_HANDLER_HPP__
-#define VKUKAN_HANDLER_HPP__
+#pragma once
+/**
+ * @file vulkan/handler.hpp
+ * @author Ray Richter
+ * @brief VkHandler class declaration.
+ */
 
-// #include "overhead.hpp"
-#include "window/window.hpp"
-#include "instance/instance.hpp"
-#include "surface/surface.hpp"
-#include "devices/device.hpp"
-#include "swapchain/swapchain.hpp"
-#include "memory/memory_mgmt.hpp"
-#include "graphics_pipeline/graphics_pipeline.hpp"
+#include "window/WindowManager.hpp"
+#include "instance/VulkanInstance.hpp"
+#include "surface/SurfaceManager.hpp"
+#include "devices/DeviceManager.hpp"
+#include "swapchain/SwapchainManager.hpp"
+#include "render_pass/RenderPass.hpp"
+#include "descriptors/DescriptorLayoutManager.hpp"
+#include "pipeline/PipelineManager.hpp"
+#include "buffers/FrameBufferManager.hpp"
+#include "buffers/CommandPoolManager.hpp"
+#include "buffers/BufferManager.hpp"
+#include "buffers/UniformBufferManager.hpp"
+#include "descriptors/DescriptorManager.hpp"
+#include "syncronization/SyncManager.hpp"
 
-/// @brief A child class of every Vulkan class required to handle Vulkan
-class VkHandlerClass : 
-    // Every Vulkan support class required by the handler
-    virtual public VkPipelineClass,
-    virtual public VkUBOOverheadClass,
-    virtual public VkSwapchainClass,
-    virtual public VkDeviceClass, 
-    virtual public VkSurfaceClass,
-    virtual public VkInstanceClass,
-    virtual public VkWindowClass
-{
-    public:
+/// @section Vulkan Handler Class Definition
 
-    VkHandlerClass(const WindowInit *window_init, const char *appName, uint32_t max_frames_in_flight);
-    ~VkHandlerClass();
-    // Delete the default constructor so it is not accidentally used
-    VkHandlerClass::VkHandlerClass() = delete;
+/// @brief A class handling data and functions for managing Vulkan
+class VkHandler {
+public:
+/// @section Vulkan Handler Constructors
 
-    private:
+    /// @brief Initalizes a Vulkan Handler with a constructor.
+    /// @param windowInit Initial window parameters as `const WindowInit&`.
+    /// @param appName Application name as UTF-8 `const char*`.
+    /// @param maxFramesInFlight Maximum number of frames in flight as `const uint32_t&`.
+    /// @param vertices Vertex information list.
+    /// @param indices Index information list.
+    VkHandler(
+        const WindowInit &windowInit, 
+        const char* appName, 
+        const uint32_t &maxFramesInFlight, 
+        const std::vector<Vertex> &vertices,
+        const std::vector<uint32_t> &indices);
+    /// @brief Default Vulkan Handler constructor. Init function still needs to be called.
+    VkHandler();
+    /// @brief Vulkan Handler deconstructor. Cleans up any data used.
+    ~VkHandler();
 
-};
+/// @section Public Member Functions
 
+    /// @brief Initializes a Vulkan Handler with a function.
+    /// @param windowInit Initial window parameters.
+    /// @param appName Application name as UTF-8 `char*`.
+    /// @param maxFramesInFlight Maximum frames in flight.
+    /// @return `VkResult`
+    VkResult init(
+        const WindowInit &windowInit, 
+        const char* appName, 
+        const uint32_t &maxFramesInFlight, 
+        const std::vector<Vertex> &vertices,
+        const std::vector<uint32_t> &indices);
+    
+    void mainLoop();
+    void drawFrame();
+    operator  bool() const { return glfwWindowShouldClose(window_.getWindow()) != 0; }
+    /// @brief Checks if the window should not close
+    /// @return `TRUE` if the window should close, `FALSE` if the window does not need to close.
+    bool operator!() const { return glfwWindowShouldClose(window_.getWindow()) == 0; }
+
+private:
+/// @section Vulkan Handler Internal Classes
+    WindowManager           window_;
+    VulkanInstance          instance_;
+    SurfaceManager          surface_;
+    DeviceManager           device_;
+    SwapchainManager        swapchain_;
+    RenderPassManager       renderPass_;
+    DescriptorLayoutManager descLayout_;
+    PipelineManager         pipeline_;
+    FrameBufferManager      framebuffers_;
+    CommandPoolManager      cmdPool_;
+    BufferManager<Vertex>   vertexBuffer_;
+    BufferManager<uint32_t> indexBuffer_;
+    UniformBufferManager    uboManager_;
+    DescriptorManager       descriptors_;
+    SyncManager             sync_;
+    uint32_t                currentFrame_;
+    size_t                  maxFIF_;
+
+/// @section Vulkan Configuration Constants
+#ifdef EN_VALIDATION_LAYERS
+    const std::vector<const char*> VALIDATION_LAYERS = {
+        "VK_LAYER_KHRONOS_validation" };
+#else
+    const std::vector<const char*> VALIDATION_LAYERS;
 #endif
+
+    VkResult init_(
+        const WindowInit&, 
+        const char*, 
+        const uint32_t&, 
+        const std::vector<Vertex>&, 
+        const std::vector<uint32_t>&); // Internal init function
+    VkResult recordCommandBuffer(const uint32_t &currentFrame, const uint32_t &imageIndex);
+};

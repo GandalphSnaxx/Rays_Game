@@ -1,0 +1,270 @@
+To improve flexibility and readability, you can divide the code into multiple classes and structs, 
+    each responsible for a specific aspect of the Vulkan setup and rendering process. Here's a suggested 
+    structure:
+
+ - Window Management: A class to handle window creation and management.
+ - Vulkan Instance: A class to handle Vulkan instance creation, validation layers, and debug messenger.
+ - Physical Device: A class to handle physical device selection and querying.
+ - Logical Device: A class to handle logical device creation and queue retrieval.
+ - Swap Chain: A class to handle swap chain creation and management.
+ - Pipeline: A class to handle graphics pipeline creation.
+ - Buffers: A class to handle buffer creation and management (vertex, index, uniform).
+ - Descriptors: A class to handle descriptor set layout and descriptor sets.
+ - Command Buffers: A class to handle command buffer allocation and recording.
+ - Synchronization: A class to handle synchronization objects (semaphores, fences).
+Here's a basic outline of how you can structure these classes:
+
+#pragma once
+#include <GLFW/glfw3.h>
+
+class WindowManager {
+public:
+    void initWindow(uint32_t width, uint32_t height, const char* title);
+    GLFWwindow* getWindow() const { return window; }
+    static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
+
+private:
+    GLFWwindow* window;
+};
+
+// filepath: /c:/Users/RayRi/Documents/Ray's Game Dir/Rays_Game/src/VulkanInstance.hpp
+#pragma once
+#include <vulkan/vulkan.h>
+#include <vector>
+
+class VulkanInstance {
+public:
+    void createInstance(bool enableValidationLayers, const std::vector<const char*>& validationLayers);
+    VkInstance getInstance() const { return instance; }
+    void setupDebugMessenger(bool enableValidationLayers);
+    void destroyDebugMessenger();
+
+private:
+    VkInstance instance;
+    VkDebugUtilsMessengerEXT debugMessenger;
+    bool checkValidationLayerSupport(const std::vector<const char*>& validationLayers);
+    std::vector<const char*> getRequiredExtensions(bool enableValidationLayers);
+    void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+};
+
+// filepath: /c:/Users/RayRi/Documents/Ray's Game Dir/Rays_Game/src/PhysicalDevice.hpp
+#pragma once
+#include <vulkan/vulkan.h>
+#include <vector>
+
+class PhysicalDevice {
+public:
+    void pickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface, const std::vector<const char*>& deviceExtensions);
+    VkPhysicalDevice getPhysicalDevice() const { return physicalDevice; }
+
+private:
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    bool isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface, const std::vector<const char*>& deviceExtensions);
+    bool checkDeviceExtensionSupport(VkPhysicalDevice device, const std::vector<const char*>& deviceExtensions);
+    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
+};
+
+// filepath: /c:/Users/RayRi/Documents/Ray's Game Dir/Rays_Game/src/LogicalDevice.hpp
+#pragma once
+#include <vulkan/vulkan.h>
+#include <vector>
+
+class LogicalDevice {
+public:
+    void createLogicalDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, const std::vector<const char*>& deviceExtensions, bool enableValidationLayers, const std::vector<const char*>& validationLayers);
+    VkDevice getDevice() const { return device; }
+    VkQueue getGraphicsQueue() const { return graphicsQueue; }
+    VkQueue getPresentQueue() const { return presentQueue; }
+
+private:
+    VkDevice device;
+    VkQueue graphicsQueue;
+    VkQueue presentQueue;
+};
+
+// filepath: /c:/Users/RayRi/Documents/Ray's Game Dir/Rays_Game/src/SwapChain.hpp
+#pragma once
+#include <vulkan/vulkan.h>
+#include <vector>
+
+class SwapChain {
+public:
+    void createSwapChain(VkPhysicalDevice physicalDevice, VkDevice device, VkSurfaceKHR surface, uint32_t width, uint32_t height);
+    void cleanupSwapChain(VkDevice device);
+    VkSwapchainKHR getSwapChain() const { return swapChain; }
+    VkFormat getSwapChainImageFormat() const { return swapChainImageFormat; }
+    VkExtent2D getSwapChainExtent() const { return swapChainExtent; }
+    const std::vector<VkImage>& getSwapChainImages() const { return swapChainImages; }
+    const std::vector<VkImageView>& getSwapChainImageViews() const { return swapChainImageViews; }
+
+private:
+    VkSwapchainKHR swapChain;
+    VkFormat swapChainImageFormat;
+    VkExtent2D swapChainExtent;
+    std::vector<VkImage> swapChainImages;
+    std::vector<VkImageView> swapChainImageViews;
+    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
+    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height);
+};
+
+// filepath: /c:/Users/RayRi/Documents/Ray's Game Dir/Rays_Game/src/Pipeline.hpp
+#pragma once
+#include <vulkan/vulkan.h>
+#include <vector>
+
+class Pipeline {
+public:
+    void createGraphicsPipeline(VkDevice device, VkExtent2D swapChainExtent, VkRenderPass renderPass, VkDescriptorSetLayout descriptorSetLayout);
+    VkPipeline getGraphicsPipeline() const { return graphicsPipeline; }
+    VkPipelineLayout getPipelineLayout() const { return pipelineLayout; }
+
+private:
+    VkPipeline graphicsPipeline;
+    VkPipelineLayout pipelineLayout;
+    VkShaderModule createShaderModule(VkDevice device, const std::vector<char>& code);
+};
+
+// filepath: /c:/Users/RayRi/Documents/Ray's Game Dir/Rays_Game/src/Buffers.hpp
+#pragma once
+#include <vulkan/vulkan.h>
+#include <vector>
+
+class Buffers {
+public:
+    void createVertexBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue graphicsQueue, const std::vector<Vertex>& vertices);
+    void createIndexBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue graphicsQueue, const std::vector<uint32_t>& indices);
+    void createUniformBuffers(VkDevice device, VkPhysicalDevice physicalDevice, size_t bufferSize, size_t bufferCount);
+    VkBuffer getVertexBuffer() const { return vertexBuffer; }
+    VkBuffer getIndexBuffer() const { return indexBuffer; }
+    const std::vector<VkBuffer>& getUniformBuffers() const { return uniformBuffers; }
+    const std::vector<VkDeviceMemory>& getUniformBuffersMemory() const { return uniformBuffersMemory; }
+    const std::vector<void*>& getUniformBuffersMapped() const { return uniformBuffersMapped; }
+
+private:
+    VkBuffer vertexBuffer;
+    VkDeviceMemory vertexBufferMemory;
+    VkBuffer indexBuffer;
+    VkDeviceMemory indexBufferMemory;
+    std::vector<VkBuffer> uniformBuffers;
+    std::vector<VkDeviceMemory> uniformBuffersMemory;
+    std::vector<void*> uniformBuffersMapped;
+    void createBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+    void copyBuffer(VkDevice device, VkCommandPool commandPool, VkQueue graphicsQueue, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+    uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
+};
+
+// filepath: /c:/Users/RayRi/Documents/Ray's Game Dir/Rays_Game/src/Descriptors.hpp
+#pragma once
+#include <vulkan/vulkan.h>
+#include <vector>
+
+class Descriptors {
+public:
+    void createDescriptorSetLayout(VkDevice device);
+    void createDescriptorPool(VkDevice device, size_t maxSets);
+    void createDescriptorSets(VkDevice device, VkDescriptorSetLayout descriptorSetLayout, const std::vector<VkBuffer>& uniformBuffers, size_t bufferSize);
+    VkDescriptorSetLayout getDescriptorSetLayout() const { return descriptorSetLayout; }
+    VkDescriptorPool getDescriptorPool() const { return descriptorPool; }
+    const std::vector<VkDescriptorSet>& getDescriptorSets() const { return descriptorSets; }
+
+private:
+    VkDescriptorSetLayout descriptorSetLayout;
+    VkDescriptorPool descriptorPool;
+    std::vector<VkDescriptorSet> descriptorSets;
+};
+
+// filepath: /c:/Users/RayRi/Documents/Ray's Game Dir/Rays_Game/src/CommandBuffers.hpp
+#pragma once
+#include <vulkan/vulkan.h>
+#include <vector>
+
+class CommandBuffers {
+public:
+    void createCommandPool(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
+    void createCommandBuffers(VkDevice device, VkCommandPool commandPool, size_t bufferCount);
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, VkRenderPass renderPass, VkFramebuffer framebuffer, VkExtent2D extent, VkPipeline graphicsPipeline, VkBuffer vertexBuffer, VkBuffer indexBuffer, VkPipelineLayout pipelineLayout, VkDescriptorSet descriptorSet, const std::vector<uint32_t>& indices);
+    VkCommandPool getCommandPool() const { return commandPool; }
+    const std::vector<VkCommandBuffer>& getCommandBuffers() const { return commandBuffers; }
+
+private:
+    VkCommandPool commandPool;
+    std::vector<VkCommandBuffer> commandBuffers;
+};
+
+// filepath: /c:/Users/RayRi/Documents/Ray's Game Dir/Rays_Game/src/Synchronization.hpp
+#pragma once
+#include <vulkan/vulkan.h>
+#include <vector>
+
+class Synchronization {
+public:
+    void createSyncObjects(VkDevice device, size_t maxFramesInFlight);
+    const std::vector<VkSemaphore>& getImageAvailableSemaphores() const { return imageAvailableSemaphores; }
+    const std::vector<VkSemaphore>& getRenderFinishedSemaphores() const { return renderFinishedSemaphores; }
+    const std::vector<VkFence>& getInFlightFences() const { return inFlightFences; }
+
+private:
+    std::vector<VkSemaphore> imageAvailableSemaphores;
+    std::vector<VkSemaphore> renderFinishedSemaphores;
+    std::vector<VkFence> inFlightFences;
+};
+
+// filepath: /c:/Users/RayRi/Documents/Ray's Game Dir/Rays_Game/src/HelloTriangleApplication.hpp
+#pragma once
+#include "WindowManager.hpp"
+#include "VulkanInstance.hpp"
+#include "PhysicalDevice.hpp"
+#include "LogicalDevice.hpp"
+#include "SwapChain.hpp"
+#include "Pipeline.hpp"
+#include "Buffers.hpp"
+#include "Descriptors.hpp"
+#include "CommandBuffers.hpp"
+#include "Synchronization.hpp"
+
+class HelloTriangleApplication {
+public:
+    void run();
+
+private:
+    WindowManager windowManager;
+    VulkanInstance vulkanInstance;
+    PhysicalDevice physicalDevice;
+    LogicalDevice logicalDevice;
+    SwapChain swapChain;
+    Pipeline pipeline;
+    Buffers buffers;
+    Descriptors descriptors;
+    CommandBuffers commandBuffers;
+    Synchronization synchronization;
+
+    void initWindow();
+    void initVulkan();
+    void mainLoop();
+    void cleanup();
+    void drawFrame();
+    void recreateSwapChain();
+    void cleanupSwapChain();
+};
+
+// filepath: /c:/Users/RayRi/Documents/Ray's Game Dir/Rays_Game/src/main.cpp
+#include "HelloTriangleApplication.hpp"
+
+int main() {
+    HelloTriangleApplication app;
+
+    try {
+        app.run();
+    } catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
+}
+
+This structure separates concerns and makes the code more modular and easier to maintain. Each class 
+    is responsible for a specific part of the Vulkan setup and rendering process. You can further 
+    refine and expand these classes as needed.
