@@ -222,27 +222,6 @@ const std::vector<uint32_t> &indices) {
     descriptors_    .init(&uboManager_, &descLayout_);
     sync_           .init(&swapchain_, maxFramesInFlight);
 
-    // createWindow();
-    // createInstance();
-    // setupDebugMessenger();
-    // createSurface();
-    // pickPhysicalDevice();
-    // createLogicalDevice();
-    // createSwapChain();
-    // createImageViews();
-    // createRenderPass();
-    // createDescriptorSetLayout();
-    // createGraphicsPipeline();
-    // createFramebuffers();
-    // createCommandPool();
-    // createVertexBuffer();
-    // createIndexBuffer();
-    // createUniformBuffers();
-    // createDescriptorPool();
-    // createDescriptorSets();
-    // createCommandBuffers();
-    // createSyncObjects();
-
     currentFrame_ = 0;
     maxFIF_ = maxFramesInFlight;
     DEBUG_MSG("\nVkHandler: Init done!");

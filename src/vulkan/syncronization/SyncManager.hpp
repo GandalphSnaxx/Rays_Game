@@ -42,7 +42,7 @@ private:
     std::vector<VkFence>        inFlightFences_;
     SwapchainManager*           pSwapMgr_;
     size_t                      maxFIF_;
-    VkDevice                    device_;
+    DeviceManager*              pDeviceMgr_;
 
     VkResult init_(SwapchainManager*, const size_t&);
 };

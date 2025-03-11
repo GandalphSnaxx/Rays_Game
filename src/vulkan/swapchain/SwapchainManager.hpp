@@ -39,6 +39,7 @@ public:
     size_t                          getMaxFIF        () const { return pDeviceMgr_->getMaxFIF();    }
     size_t                          getImageSize     () const { return swapchainImages_.size();     }
     size_t                          getViewsSize     () const { return swapchainImageViews_.size(); }
+    DeviceManager*                  getPDeviceMgr    () const { return pDeviceMgr_;                 }
 
 private:
     struct SupportDetails_ { public:

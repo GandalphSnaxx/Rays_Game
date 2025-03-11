@@ -18,9 +18,9 @@ SyncManager::SyncManager() {
 SyncManager::~SyncManager() {
     DEBUG_MSG("Called SyncManager deconstructor");
     for (size_t i = 0; i < maxFIF_; i++) {
-        vkDestroySemaphore(device_, imageAvailableSemaphores_[i], nullptr);
-        vkDestroySemaphore(device_, renderFinishedSemaphores_[i], nullptr);
-        vkDestroyFence    (device_, inFlightFences_[i],           nullptr);
+        vkDestroySemaphore(pDeviceMgr_->getDevice(), imageAvailableSemaphores_[i], nullptr);
+        vkDestroySemaphore(pDeviceMgr_->getDevice(), renderFinishedSemaphores_[i], nullptr);
+        vkDestroyFence    (pDeviceMgr_->getDevice(), inFlightFences_[i],           nullptr);
     }
 }
 
@@ -65,7 +65,7 @@ VkResult SyncManager::init_(SwapchainManager *pSwapMgr, const size_t &maxFIF) {
     VkResult result;
     pSwapMgr_ = pSwapMgr;
     maxFIF_ = maxFIF;
-    device_ = pSwapMgr_->getDevice();
+    pDeviceMgr_ = pSwapMgr_->getPDeviceMgr();
 
     imageAvailableSemaphores_.resize(maxFIF_);
     renderFinishedSemaphores_.resize(maxFIF_);
