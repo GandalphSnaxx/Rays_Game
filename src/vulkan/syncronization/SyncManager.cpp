@@ -17,11 +17,11 @@ SyncManager::SyncManager() {
 
 SyncManager::~SyncManager() {
     DEBUG_MSG("Called SyncManager deconstructor");
-    for (size_t i = 0; i < maxFIF_; i++) {
-        vkDestroySemaphore(pDeviceMgr_->getDevice(), imageAvailableSemaphores_[i], nullptr);
-        vkDestroySemaphore(pDeviceMgr_->getDevice(), renderFinishedSemaphores_[i], nullptr);
-        vkDestroyFence    (pDeviceMgr_->getDevice(), inFlightFences_[i],           nullptr);
-    }
+    // for (size_t i = 0; i < maxFIF_; i++) {
+    //     vkDestroySemaphore(pDeviceMgr_->getDevice(), imageAvailableSemaphores_[i], nullptr);
+    //     vkDestroySemaphore(pDeviceMgr_->getDevice(), renderFinishedSemaphores_[i], nullptr);
+    //     vkDestroyFence    (pDeviceMgr_->getDevice(), inFlightFences_[i],           nullptr);
+    // }
 }
 
 /// @section Public Member Functions
@@ -29,6 +29,15 @@ SyncManager::~SyncManager() {
 VkResult SyncManager::init(SwapchainManager *pSwapMgr, const size_t &maxFIF) {
     DEBUG_MSG("Called SyncManager init function...");
     return init_(pSwapMgr, maxFIF);
+}
+
+VkResult SyncManager::cleanup() {
+    for (size_t i = 0; i < maxFIF_; i++) {
+        vkDestroySemaphore(pDeviceMgr_->getDevice(), imageAvailableSemaphores_[i], nullptr);
+        vkDestroySemaphore(pDeviceMgr_->getDevice(), renderFinishedSemaphores_[i], nullptr);
+        vkDestroyFence    (pDeviceMgr_->getDevice(), inFlightFences_[i],           nullptr);
+    }
+    return VK_SUCCESS;
 }
 
 VkResult SyncManager::wait(

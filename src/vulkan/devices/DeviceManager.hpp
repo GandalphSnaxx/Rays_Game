@@ -24,6 +24,7 @@ class DeviceManager {
     /// @param instance The `VulkanInstance` to connect a device to.
     /// @return `VkResult`
     VkResult         init             (VulkanInstance*, SurfaceManager*);
+    VkResult         cleanup          ();
     VkPhysicalDevice getPhysicalDevice() const { return physicalDevice_;           }
     VkDevice         getDevice        () const { return device_;                   }
     VkQueue          getGraphicsQueue () const { return graphicsQueue_;            }

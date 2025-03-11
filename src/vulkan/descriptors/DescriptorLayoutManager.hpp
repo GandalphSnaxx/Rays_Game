@@ -13,6 +13,7 @@ public:
     ~DescriptorLayoutManager();
 
     VkResult init(DeviceManager *pDeviceMgr);
+    VkResult cleanup();
     VkDescriptorSetLayout getLayout() const { return layout_; }
 
 private:

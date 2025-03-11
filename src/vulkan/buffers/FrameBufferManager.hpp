@@ -15,6 +15,7 @@ public:
     ~FrameBufferManager();
 
     VkResult init(RenderPassManager *pRdPassMgr);
+    VkResult cleanup();
 
     VkResult remake() { return init_(pRenderPassManager_); }
     std::vector<VkFramebuffer>& getFramebuffers() { return framebuffers_; }

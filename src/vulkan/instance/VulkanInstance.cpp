@@ -24,8 +24,8 @@ VulkanInstance::VulkanInstance() {
 /// @brief Cleans up this Vulkan instance
 VulkanInstance::~VulkanInstance() {
     DEBUG_MSG("Deconstructing VulkanInstance...");
-    if (enValidationLayers_) { DestroyDebugUtilsMessengerEXT_(nullptr); }
-    vkDestroyInstance(instance_, nullptr);
+    // if (enValidationLayers_) { DestroyDebugUtilsMessengerEXT_(nullptr); }
+    // vkDestroyInstance(instance_, nullptr);
 }
 
 /// @brief Initalizes a Vulkan instance
@@ -45,6 +45,12 @@ VkResult VulkanInstance::init(const std::vector<const char*> &validationLayers, 
 
     DEBUG_MSG("VulkanInstance initalized!");
     return result;
+}
+
+VkResult VulkanInstance::cleanup() {
+    if (enValidationLayers_) { DestroyDebugUtilsMessengerEXT_(nullptr); }
+    vkDestroyInstance(instance_, nullptr);
+    return VK_SUCCESS;
 }
 
 /**

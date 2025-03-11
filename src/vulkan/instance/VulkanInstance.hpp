@@ -17,6 +17,7 @@ public:
     // Public functions
 
     VkResult    init        (const std::vector<const char*> &validationLayers, const char *appName, const bool &enValLayers = false);
+    VkResult    cleanup     ();
     VkInstance  getInstance () const { return instance_; }
     bool        vLayersEn   () const { return enValidationLayers_; }
     std::vector<const char*> getVLayers() const { return validationLayers_; }

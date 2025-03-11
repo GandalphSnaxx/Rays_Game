@@ -17,7 +17,7 @@ FrameBufferManager::FrameBufferManager() {
 
 FrameBufferManager::~FrameBufferManager() {
     DEBUG_MSG("Called FrameBufferManager deconstructor");
-    cleanupFramebuffers();
+    // cleanupFramebuffers();
 }
 
 /// @section Public Member Functions
@@ -25,6 +25,11 @@ FrameBufferManager::~FrameBufferManager() {
 VkResult FrameBufferManager::init(RenderPassManager *pRdPassMgr) {
     DEBUG_MSG("Called FrameBufferManager init function");
     return init_(pRdPassMgr);
+}
+
+VkResult FrameBufferManager::cleanup() {
+    cleanupFramebuffers();
+    return VK_SUCCESS;
 }
 
 void FrameBufferManager::cleanupFramebuffers() {

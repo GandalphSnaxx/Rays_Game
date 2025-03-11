@@ -13,11 +13,26 @@ SwapchainManager::SwapchainManager() {
 
 SwapchainManager::~SwapchainManager() {
     DEBUG_MSG("Called SwapchainManager deconstructor");
-    cleanupSwapchain_();
+    // cleanup();
     // vkDestroyCommandPool(device_, commandPool_, nullptr);
 }
 
 /// @section Public Member Functions
+
+VkResult SwapchainManager::cleanup() {
+    if (getDevice() == nullptr) THROW_ERR("SwapchainManager ERROR: Swapchain init failed! Can't deconstruct!");
+
+    // Destroy image views
+    for (size_t i = 0; i < swapchainImageViews_.size(); i++) {
+        DEBUG_MSG("\tDestroying image view " << i);
+        vkDestroyImageView(pDeviceMgr_->getDevice(), swapchainImageViews_[i], nullptr);
+    }
+
+    // Destroy swapchain
+    DEBUG_MSG("\tDestroying swapchain");
+    vkDestroySwapchainKHR(pDeviceMgr_->getDevice(), swapchain_, nullptr);
+    return VK_SUCCESS;
+}
 
 VkResult SwapchainManager::init(DeviceManager *pDeviceMgr) {
     DEBUG_MSG("Called SwapchainManager init function");
@@ -40,7 +55,7 @@ VkResult SwapchainManager::remake1() {
 }
 
 VkResult SwapchainManager::remake2() {
-    cleanupSwapchain_();
+    cleanup();
 
     init_(pDeviceMgr_);
     // createImageViews();
@@ -62,20 +77,6 @@ VkResult SwapchainManager::init_(DeviceManager *pDeviceMgr) {
 
     DEBUG_MSG("\tDone!");
     return result;
-}
-
-void SwapchainManager::cleanupSwapchain_() {
-    if (getDevice() == nullptr) THROW_ERR("SwapchainManager ERROR: Swapchain init failed! Can't deconstruct!");
-
-    // Destroy image views
-    for (size_t i = 0; i < swapchainImageViews_.size(); i++) {
-        DEBUG_MSG("\tDestroying image view " << i);
-        vkDestroyImageView(pDeviceMgr_->getDevice(), swapchainImageViews_[i], nullptr);
-    }
-
-    // Destroy swapchain
-    DEBUG_MSG("\tDestroying swapchain");
-    vkDestroySwapchainKHR(pDeviceMgr_->getDevice(), swapchain_, nullptr);
 }
 
 VkSurfaceFormatKHR SwapchainManager::chooseSwapSurfaceFormat_(const std::vector<VkSurfaceFormatKHR>& availableFormats) {

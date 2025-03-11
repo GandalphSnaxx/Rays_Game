@@ -24,6 +24,7 @@ class WindowManager {
     /// @param title Initial window title as UTF-8 `char*`
     /// @return `VkResult`
     VkResult    init        (const int width, const int height, const char* title);
+    VkResult    cleanup     ();
     /// @brief Gets the current window.
     GLFWwindow* getWindow   () const { return window_; }
     /// @brief Sets frame buffer resized flag.

@@ -18,7 +18,7 @@ PipelineManager::PipelineManager() {
 
 PipelineManager::~PipelineManager() {
     DEBUG_MSG("Called PipelineManager deconstructor");
-    vkDestroyPipelineLayout(pRdPassMgr_->getDevice(), pipelineLayout_, nullptr);
+    // vkDestroyPipelineLayout(pRdPassMgr_->getDevice(), pipelineLayout_, nullptr);
 }
 
 /// @section Public Member Functions
@@ -26,6 +26,12 @@ PipelineManager::~PipelineManager() {
 VkResult PipelineManager::init(RenderPassManager *pRdPassMgr, DescriptorLayoutManager *pDescLayoutMgr) {
     DEBUG_MSG("Called PipelineManager external init function");
     return init_(pRdPassMgr, pDescLayoutMgr);
+}
+
+VkResult PipelineManager::cleanup() {
+    vkDestroyPipeline(pRdPassMgr_->getDevice(), graphicsPipeline_, nullptr);
+    vkDestroyPipelineLayout(pRdPassMgr_->getDevice(), pipelineLayout_, nullptr);
+    return VK_SUCCESS;
 }
 
 /// @section Private Member Functions

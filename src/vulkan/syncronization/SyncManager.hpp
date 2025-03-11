@@ -13,6 +13,7 @@ public:
     ~SyncManager();
 
     VkResult init(SwapchainManager*, const size_t&);
+    VkResult cleanup();
     /// @brief Waits for fences
     /// @param fenceCount 
     /// @param fenceIndex 

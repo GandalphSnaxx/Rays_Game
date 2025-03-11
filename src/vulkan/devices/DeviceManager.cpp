@@ -27,6 +27,11 @@ VkResult DeviceManager::init(VulkanInstance *instance, SurfaceManager *surface) 
     return init_(instance, surface);
 }
 
+VkResult DeviceManager::cleanup() {
+    vkDestroyDevice(device_, nullptr);
+    return VK_SUCCESS;
+}
+
 /**
  * @section Private Functions
  */

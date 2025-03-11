@@ -17,6 +17,7 @@ public:
     // RenderPassManager::RenderPassManager() = delete;
 
     VkResult init(SwapchainManager *pSwapMgr);
+    VkResult cleanup();
 
     VkRenderPass                    getRenderPass     () const { return renderPass_;                   }
     uint32_t                        getAttachmentCount() const { return attachmentCount_;              }

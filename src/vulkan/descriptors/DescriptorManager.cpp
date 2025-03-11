@@ -13,9 +13,8 @@ DescriptorManager::DescriptorManager() {
 
 DescriptorManager::~DescriptorManager() {
     DEBUG_MSG("Called VkDescriptorClass deconstructor");
-    // vkDestroyDescriptorSetLayout(pUBOMgr_->getDevice(), setLayout_, nullptr);
     // Descriptor sets get destroyed when the descriptor pool is destroyed
-    vkDestroyDescriptorPool(pUBOMgr_->getDevice(), pool_, nullptr);
+    // vkDestroyDescriptorPool(pUBOMgr_->getDevice(), pool_, nullptr);
 }
 
 /// @section Public Member Functions
@@ -23,6 +22,11 @@ DescriptorManager::~DescriptorManager() {
 VkResult DescriptorManager::init(UniformBufferManager *pUBOMgr, DescriptorLayoutManager *pLayoutMgr) {
     DEBUG_MSG("Called DescriptorManager external init function");
     return init_(pUBOMgr, pLayoutMgr);
+}
+
+VkResult DescriptorManager::cleanup() {
+    vkDestroyDescriptorPool(pUBOMgr_->getDevice(), pool_, nullptr);
+    return VK_SUCCESS;
 }
 
 /// @section Private Member Functions

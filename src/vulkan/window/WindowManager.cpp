@@ -15,10 +15,10 @@ WindowManager::WindowManager() {
 /// @brief Destroys any window related data
 WindowManager::~WindowManager() {
     DEBUG_MSG("Called WindowManager deconstructor");
-    // Destroy the window and its context
-    glfwDestroyWindow(window_);
-    // Terminate the GLFW library
-    glfwTerminate();
+    // // Destroy the window and its context
+    // glfwDestroyWindow(window_);
+    // // Terminate the GLFW library
+    // glfwTerminate();
 }
 
 /// @brief Initalizes a `GLFWwindow` for Vulkan
@@ -49,6 +49,14 @@ VkResult WindowManager::init(const int width, const int height, const char* titl
     if (width < 1 || height < 1 || title == "") { THROW_ERR("Initial window parameters out of bounds!"); }
     const WindowInit windowInit{width, height, title, nullptr, nullptr};
     return init_(windowInit);
+}
+
+VkResult WindowManager::cleanup() {
+    // Destroy the window and its context
+    glfwDestroyWindow(window_);
+    // Terminate the GLFW library
+    glfwTerminate();
+    return VK_SUCCESS;
 }
 
 /// @brief Internal window initializer

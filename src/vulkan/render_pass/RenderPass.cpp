@@ -18,7 +18,7 @@ RenderPassManager::RenderPassManager() {
 
 RenderPassManager::~RenderPassManager() {
     DEBUG_MSG("Called RenderPassManager deconstructor");
-    vkDestroyRenderPass(pSwapMgr_->getDevice(), renderPass_, nullptr);
+    // vkDestroyRenderPass(pSwapMgr_->getDevice(), renderPass_, nullptr);
 }
 
 /// @section Public Member Functions
@@ -26,6 +26,11 @@ RenderPassManager::~RenderPassManager() {
 VkResult RenderPassManager::init(SwapchainManager *pSwapMgr) {
     DEBUG_MSG("Initalizing RenderPassManager with a function...");
     return init_(pSwapMgr);
+}
+
+VkResult RenderPassManager::cleanup() {
+    vkDestroyRenderPass(pSwapMgr_->getDevice(), renderPass_, nullptr);
+    return VK_SUCCESS;
 }
 
 /// @section Private Member Functions

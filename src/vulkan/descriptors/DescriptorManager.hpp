@@ -23,6 +23,7 @@ public:
     // VkDescriptorClass::VkDescriptorClass() = delete;
     
     VkResult init(UniformBufferManager*, DescriptorLayoutManager*);
+    VkResult cleanup();
     inline VkDescriptorSetLayout getLayout() const { return pLayoutMgr_->getLayout(); }
     inline VkDescriptorSet getSet    (const size_t &i) const { return sets_[i]; }
     inline VkDescriptorSet operator[](const size_t &i) const { return sets_[i]; }

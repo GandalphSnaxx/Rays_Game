@@ -17,10 +17,10 @@ UniformBufferManager::UniformBufferManager() {
 
 UniformBufferManager::~UniformBufferManager() {
     DEBUG_MSG("Called UniformBufferManager deconstructor");
-    for (size_t i = 0; i < maxFIF_; i++) {
-        vkDestroyBuffer(pDeviceMgr_->getDevice(), uniformBuffers_[i], nullptr);
-        vkFreeMemory(pDeviceMgr_->getDevice(), uniformBuffersMemory_[i], nullptr);
-    }
+    // for (size_t i = 0; i < maxFIF_; i++) {
+    //     vkDestroyBuffer(pDeviceMgr_->getDevice(), uniformBuffers_[i], nullptr);
+    //     vkFreeMemory(pDeviceMgr_->getDevice(), uniformBuffersMemory_[i], nullptr);
+    // }
 }
 
 /// @section Public Member Functions
@@ -28,6 +28,14 @@ UniformBufferManager::~UniformBufferManager() {
 VkResult UniformBufferManager::init(DeviceManager *pDeviceMgr, const size_t &maxFIF) {
     DEBUG_MSG("Called UniformBufferManager initalizer");
     return init_(pDeviceMgr, maxFIF);
+}
+
+VkResult UniformBufferManager::cleanup() {
+    for (size_t i = 0; i < maxFIF_; i++) {
+        vkDestroyBuffer(pDeviceMgr_->getDevice(), uniformBuffers_[i], nullptr);
+        vkFreeMemory(pDeviceMgr_->getDevice(), uniformBuffersMemory_[i], nullptr);
+    }
+    return VK_SUCCESS;
 }
 
 VkResult UniformBufferManager::update(const uint32_t &currentImage, const VkExtent2D &currentExtent) {

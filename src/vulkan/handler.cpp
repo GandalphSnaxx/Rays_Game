@@ -43,48 +43,48 @@ VkHandler::VkHandler() {
 VkHandler::~VkHandler() {
     DEBUG_MSG("Called VkHandler deconstructor");
 
-    // Cleanup framebuffers
-    framebuffers_.~FrameBufferManager();
+    // // Cleanup framebuffers
+    // framebuffers_.~FrameBufferManager();
 
-    // CLeanup swapchain
-    swapchain_.~SwapchainManager();
+    // // CLeanup swapchain
+    // swapchain_.~SwapchainManager();
     
-    // Cleanup every uniform buffer
-    uboManager_.~UniformBufferManager();
+    // // Cleanup every uniform buffer
+    // uboManager_.~UniformBufferManager();
 
-    // Destroy descriptor pool
-    descriptors_.~DescriptorManager();
+    // // Destroy descriptor pool
+    // descriptors_.~DescriptorManager();
 
-    // Destroy descriptor layout
-    descLayout_.~DescriptorLayoutManager();
+    // // Destroy descriptor layout
+    // descLayout_.~DescriptorLayoutManager();
     
-    // Cleanup buffers
-    indexBuffer_.~BufferManager();
-    vertexBuffer_.~BufferManager();
+    // // Cleanup buffers
+    // indexBuffer_.~BufferManager();
+    // vertexBuffer_.~BufferManager();
     
-    // Destroy pipeline and pipeline layout
-    pipeline_.~PipelineManager();
+    // // Destroy pipeline and pipeline layout
+    // pipeline_.~PipelineManager();
 
-    // Destroy render pass
-    renderPass_.~RenderPassManager();
+    // // Destroy render pass
+    // renderPass_.~RenderPassManager();
 
-    // Destroy the semaphores and fences when all commands have finished and no more syncronization is necessary
-    sync_.~SyncManager();
+    // // Destroy the semaphores and fences when all commands have finished and no more syncronization is necessary
+    // sync_.~SyncManager();
 
-    // Destroy the command pool
-    cmdPool_.~CommandPoolManager();
+    // // Destroy the command pool
+    // cmdPool_.~CommandPoolManager();
     
-    // Destroy devices
-    device_.~DeviceManager();
+    // // Destroy devices
+    // device_.~DeviceManager();
 
-    // Destroy the surface and validation layers
-    surface_.~SurfaceManager();
+    // // Destroy the surface and validation layers
+    // surface_.~SurfaceManager();
 
-    // Destroy the instance
-    instance_.~VulkanInstance();
+    // // Destroy the instance
+    // instance_.~VulkanInstance();
 
-    // Destroy the window and terminate GLFW
-    window_.~WindowManager();
+    // // Destroy the window and terminate GLFW
+    // window_.~WindowManager();
 }
 
 /// @section Public Member Functions
@@ -98,6 +98,47 @@ const std::vector<uint32_t> &indices) {
     DEBUG_MSG("Initalizing VkHandler with a function...\n");
     VK_CHECK(init_(windowInit, appName, maxFramesInFlight, vertices, indices));
     return VK_SUCCESS;
+}
+
+void VkHandler::cleanup() {
+    swapchain_.cleanup();
+
+    // Cleanup every uniform buffer
+    uboManager_.cleanup();
+
+    // Descriptor sets get destroyed when the descriptor pool is destroyed
+    descriptors_.cleanup();
+
+    // Cleanup descriptor set layout
+    descLayout_.cleanup();
+
+    // Cleanup buffers
+    indexBuffer_.cleanup();
+    vertexBuffer_.cleanup();
+
+    // Destroy pipeline and pipeline layout
+    pipeline_.cleanup();
+
+    // Cleanup render pass
+    renderPass_.cleanup();
+
+    // Destroy the semaphores and fences when all commands have finished and no more syncronization is necessary
+    sync_.cleanup();
+
+    // Destroy the command pool
+    cmdPool_.cleanup();
+    
+    // Destroy the device
+    device_.cleanup();
+
+    // Destroy surface
+    surface_.cleanup();
+
+    // Destroy instance
+    instance_.cleanup();
+
+    // Destroy window and glfw
+    window_.cleanup();
 }
 
 void VkHandler::mainLoop() {

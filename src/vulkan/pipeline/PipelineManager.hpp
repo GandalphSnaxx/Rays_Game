@@ -39,6 +39,7 @@ public:
     /// @param descriptorLayout The descriptor layout to add to the pipeline.
     /// @return `VkResult`
     VkResult init(RenderPassManager*, DescriptorLayoutManager*);
+    VkResult cleanup();
 
     VkPipeline          getPipeline() const { return graphicsPipeline_; }
     VkPipelineLayout    getLayout  () const { return pipelineLayout_;   }

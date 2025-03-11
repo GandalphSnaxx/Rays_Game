@@ -21,7 +21,7 @@ CommandPoolManager::CommandPoolManager() {
 
 CommandPoolManager::~CommandPoolManager() {
     DEBUG_MSG("Called CommandPoolManager deconstructor");
-    vkDestroyCommandPool(pRdPassMgr_->getDevice(), commandPool_, nullptr);
+    // vkDestroyCommandPool(pRdPassMgr_->getDevice(), commandPool_, nullptr);
 }
 
 /// @section Public Member Functions
@@ -33,6 +33,11 @@ const uint32_t &qFamilyIdx,
 const VkCommandPoolCreateFlagBits &flags) {
     DEBUG_MSG("Initalizing CommandPoolManager with a function...");
     return init_(pRdPassMgr, maxFIF, qFamilyIdx, flags);
+}
+
+VkResult CommandPoolManager::cleanup() {
+    vkDestroyCommandPool(pRdPassMgr_->getDevice(), commandPool_, nullptr);
+    return VK_SUCCESS;
 }
 
 /// @section Private Member Functions

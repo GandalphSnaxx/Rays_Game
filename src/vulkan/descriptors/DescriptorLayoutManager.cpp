@@ -17,7 +17,7 @@ DescriptorLayoutManager::DescriptorLayoutManager() {
 
 DescriptorLayoutManager::~DescriptorLayoutManager() {
     DEBUG_MSG("Called DescriptorLayoutManager deconstructor");
-    vkDestroyDescriptorSetLayout(pDeviceMgr_->getDevice(), layout_, nullptr);
+    // vkDestroyDescriptorSetLayout(pDeviceMgr_->getDevice(), layout_, nullptr);
 }
 
 /// @section Public Member Functions
@@ -25,6 +25,11 @@ DescriptorLayoutManager::~DescriptorLayoutManager() {
 VkResult DescriptorLayoutManager::init(DeviceManager *pDeviceMgr) {
     DEBUG_MSG("Called DescriptorLayoutManager init function");
     return init_(pDeviceMgr);
+}
+
+VkResult DescriptorLayoutManager::cleanup() {
+    vkDestroyDescriptorSetLayout(pDeviceMgr_->getDevice(), layout_, nullptr);
+    return VK_SUCCESS;
 }
 
 /// @section Private Member Functions

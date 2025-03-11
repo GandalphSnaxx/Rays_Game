@@ -27,6 +27,7 @@ public:
     /// @param maxFIF Maximum number of frames in flight.
     /// @return `VkResult`
     VkResult init(VulkanInstance*, WindowManager*, const size_t&);
+    VkResult cleanup();
     VkSurfaceKHR getSurface () const { return surface_;                     }
     VkInstance   getInstance() const { return pInstanceMgr_->getInstance(); }
     GLFWwindow*  getPWindow () const { return pWindowMgr_->getWindow();     }

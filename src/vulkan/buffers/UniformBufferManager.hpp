@@ -29,9 +29,11 @@ public:
     /// @return `VkResult`
     VkResult init(DeviceManager *pDeviceMgr, const size_t &maxFIF);
     VkResult update(const uint32_t&, const VkExtent2D&);
+    VkResult cleanup();
 
-    std::vector<VkBuffer>& getBuffers()       { return uniformBuffers_;    }
-    VkBuffer getBuffer(const size_t &i) const { return uniformBuffers_[i]; }
+    std::vector<VkBuffer>& getBuffers()              { return uniformBuffers_;    }
+    VkBuffer        getBuffer(const size_t &i) const { return uniformBuffers_[i]; }
+    VkDeviceMemory  getMemory(const size_t &i) const { return uniformBuffersMemory_[i]; }
     VkDevice getDevice() const { return pDeviceMgr_->getDevice(); }
     size_t   getMaxFIF() const { return maxFIF_; }
 

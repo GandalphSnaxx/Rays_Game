@@ -17,8 +17,8 @@ public:
     BufferManager() { DEBUG_MSG("Called BufferManager default constructor"); }
     ~BufferManager() { 
         DEBUG_MSG("Called BufferManager deconstructor");
-        vkDestroyBuffer(pCmdMgr_->getDevice(), buffer_, nullptr);
-        vkFreeMemory(pCmdMgr_->getDevice(), bufferMemory_, nullptr);
+        // vkDestroyBuffer(pCmdMgr_->getDevice(), buffer_, nullptr);
+        // vkFreeMemory(pCmdMgr_->getDevice(), bufferMemory_, nullptr);
     }
 
     /// @brief Creates a staging buffer then moves the buffer to gpu and cpu memory.
@@ -26,6 +26,10 @@ public:
     VkResult init(CommandPoolManager *pCmdMgr, const std::vector<Buffer_t> &in) {
         DEBUG_MSG("Called BufferManager init function");
         return init_(pCmdMgr, in); }
+
+    VkResult cleanup() {
+        vkDestroyBuffer(pCmdMgr_->getDevice(), buffer_, nullptr);
+        vkFreeMemory(pCmdMgr_->getDevice(), bufferMemory_, nullptr); }
 
     /// @brief Creates a buffer.
     /// @param size Buffer size as `VkDeviceSize`.

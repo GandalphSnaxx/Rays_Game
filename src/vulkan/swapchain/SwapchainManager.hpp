@@ -19,6 +19,7 @@ public:
     VkResult init(DeviceManager*);
     VkResult remake1();
     VkResult remake2();
+    VkResult cleanup();
 
     VkSwapchainKHR                  getSwapchain     () const { return swapchain_;                  }
     VkFormat                        getScImageFormat () const { return swapchainImageFormat_;       }
@@ -66,7 +67,6 @@ private:
     // std::vector<VkFramebuffer>  swapchainFramebuffers_; // Moved to buffer manager
 
     VkResult            init_                   (DeviceManager*);
-    void                cleanupSwapchain_       ();
     VkSurfaceFormatKHR  chooseSwapSurfaceFormat_(const std::vector<VkSurfaceFormatKHR>&);
     VkPresentModeKHR    chooseSwapPresentMode_  (const std::vector<VkPresentModeKHR>&);
     VkExtent2D          chooseSwapExtent_       (const VkSurfaceCapabilitiesKHR&, GLFWwindow*);

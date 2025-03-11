@@ -20,7 +20,7 @@ SurfaceManager::SurfaceManager() {
 /// @brief Surface deconstructor
 SurfaceManager::~SurfaceManager() {
     DEBUG_MSG("Called VkSurfaceClass deconstructor");
-    vkDestroySurfaceKHR(pInstanceMgr_->getInstance(), surface_, nullptr);
+    // vkDestroySurfaceKHR(pInstanceMgr_->getInstance(), surface_, nullptr);
 }
 
 /// @section Public Member Functions
@@ -28,6 +28,11 @@ SurfaceManager::~SurfaceManager() {
 VkResult SurfaceManager::init(VulkanInstance *instance, WindowManager *window, const size_t &maxFIF) {
     DEBUG_MSG("Initializing SurfaceManager with a function");
     return init_(instance, window, maxFIF);
+}
+
+VkResult SurfaceManager::cleanup() {
+    vkDestroySurfaceKHR(pInstanceMgr_->getInstance(), surface_, nullptr);
+    return VK_SUCCESS;
 }
 
 /// @section Private Member Functions

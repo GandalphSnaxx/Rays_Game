@@ -22,6 +22,7 @@ public:
         const size_t &maxFIF,
         const uint32_t &qFamilyIdx, 
         const VkCommandPoolCreateFlagBits &flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+    VkResult cleanup();
     VkResult resetCB(const size_t &index, const VkCommandBufferResetFlagBits &flags = VkCommandBufferResetFlagBits(0)) 
     { return vkResetCommandBuffer(commandBuffers_[index], flags); }
     // VkResult recordCB(
