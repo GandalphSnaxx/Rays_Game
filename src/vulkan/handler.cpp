@@ -43,20 +43,25 @@ VkHandler::VkHandler() {
 VkHandler::~VkHandler() {
     DEBUG_MSG("Called VkHandler deconstructor");
 
+    // CLeanup swapchain
     swapchain_.~SwapchainManager();
-
-    framebuffers_.~FrameBufferManager();
-
+    
     // Cleanup every uniform buffer
     uboManager_.~UniformBufferManager();
 
-    // Cleanup descriptor sets
+    // Cleanup framebuffers
+    framebuffers_.~FrameBufferManager();
+
+    // Destroy descriptor pool
     descriptors_.~DescriptorManager();
 
+    // Destroy descriptor layout
+    descLayout_.~DescriptorLayoutManager();
+    
     // Cleanup buffers
     indexBuffer_.~BufferManager();
     vertexBuffer_.~BufferManager();
-
+    
     // Destroy pipeline and pipeline layout
     pipeline_.~PipelineManager();
 
@@ -98,9 +103,10 @@ const std::vector<uint32_t> &indices) {
 void VkHandler::mainLoop() {
     glfwPollEvents();
     drawFrame();
+}
 
-    // Wait for logical devices to finish operations before exiting
-    if (glfwWindowShouldClose(window_.getWindow())) vkDeviceWaitIdle(device_.getDevice());
+void VkHandler::endLoop() {
+    vkDeviceWaitIdle(device_.getDevice());
 }
 
 void VkHandler::drawFrame() {

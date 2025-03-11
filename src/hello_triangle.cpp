@@ -20,6 +20,7 @@ void HelloTriangleApplication::run() {
 
         // Do cpu functions here
     }
+    vulkanHandler_.endLoop();
 }
 
 /// @section Private Member Functions

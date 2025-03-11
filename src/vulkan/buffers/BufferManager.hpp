@@ -4,6 +4,7 @@
  * @author Ray Richter
  */
 #include <vulkan/vulkan.h>
+#include <typeinfo>
 #include "CommandPoolManager.hpp"
 #include "raysDebugHelper.hpp"
 
@@ -40,7 +41,7 @@ public:
         VkBuffer &buffer,
         VkDeviceMemory &bufferMemory
     ) {
-        DEBUG_MSG("\tCreating a buffer...");
+        DEBUG_MSG("\t\tCreating a buffer...");
         VkResult result;
 
         // Buffer configuration
@@ -55,9 +56,10 @@ public:
         result = vkCreateBuffer(pCmdMgr_->getDevice(), &bufferInfo, nullptr, &buffer);
         if (result != VK_SUCCESS) return result;
 
+        DEBUG_MSG("\t\tGetting buffer memory requirements...");
         // Get the memory requirements of the VkBuffer
         VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(pCmdMgr_->getDevice(), buffer_, &memRequirements);
+        vkGetBufferMemoryRequirements(pCmdMgr_->getDevice(), buffer, &memRequirements);
 
         // Configure the memory allocation
         VkMemoryAllocateInfo allocInfo{};
@@ -65,9 +67,11 @@ public:
         allocInfo.allocationSize = memRequirements.size;
         allocInfo.memoryTypeIndex = findMemoryType_(memRequirements.memoryTypeBits, properties);
 
+        DEBUG_MSG("\t\tAllocating memory...");
         result = vkAllocateMemory(pCmdMgr_->getDevice(), &allocInfo, nullptr, &bufferMemory);
         if (result != VK_SUCCESS) return result;
 
+        DEBUG_MSG("\t\tBinding buffer memory...");
         result = vkBindBufferMemory(pCmdMgr_->getDevice(), buffer, bufferMemory, 0);
         if (result != VK_SUCCESS) return result;
 
@@ -84,7 +88,7 @@ public:
         const VkBuffer &dstBuffer, 
         const VkDeviceSize size
     ) const {
-        DEBUG_MSG("\tCopying a buffer...");
+        DEBUG_MSG("\t\tCopying a buffer...");
         VkResult result;
 
         // Configure a command buffer
@@ -94,11 +98,13 @@ public:
         allocInfo.commandPool = pCmdMgr_->getPool();
         allocInfo.commandBufferCount = 1;
 
+        DEBUG_MSG("\t\tAllocating command buffer...");
         // Allocate the commands
         VkCommandBuffer commandBuffer;
         result = vkAllocateCommandBuffers(pCmdMgr_->getDevice(), &allocInfo, &commandBuffer);
         if (result != VK_SUCCESS) return result;
 
+        DEBUG_MSG("\t\tRecording command buffer...");
         // Start recording the command buffer
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -106,6 +112,7 @@ public:
         result = vkBeginCommandBuffer(commandBuffer, &beginInfo);
         if (result != VK_SUCCESS) return result;
 
+        DEBUG_MSG("\t\tInit copy command...");
         // Initiate a coppy command
         VkBufferCopy copyRegion{};
         copyRegion.srcOffset = 0; // Optional
@@ -113,10 +120,12 @@ public:
         copyRegion.size = size;
         vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
+        DEBUG_MSG("\t\tEnd command buffer recording...");
         // End the command buffer recording
         result = vkEndCommandBuffer(commandBuffer);
         if (result != VK_SUCCESS) return result;
 
+        DEBUG_MSG("\t\tSubmitting command buffer...");
         // No events to wait for, just copy the memory
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -125,15 +134,17 @@ public:
         result = vkQueueSubmit(pCmdMgr_->getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
         if (result != VK_SUCCESS) return result;
 
+        DEBUG_MSG("\t\tWaiting for command buffer...");
         /// TODO: Add fencing to queue multiple memory transfers at once
         // Wait for the transfer
         result = vkQueueWaitIdle(pCmdMgr_->getGraphicsQueue());
         if (result != VK_SUCCESS) return result;
 
+        DEBUG_MSG("\t\tCleaning command buffer...");
         // Cleanup command buffer
         vkFreeCommandBuffers(pCmdMgr_->getDevice(), pCmdMgr_->getPool(), 1, &commandBuffer);
 
-        DEBUG_MSG("\tCopy done!");
+        DEBUG_MSG("\t\tCopy done!");
         return result;
     }
 
@@ -149,15 +160,18 @@ private:
     CommandPoolManager*     pCmdMgr_;
 
     VkResult init_(CommandPoolManager *pCmdMgr, const std::vector<Buffer_t> &in) {
+        DEBUG_MSG("\tInitalizing BufferManager with type: " << typeid(Buffer_t).name());
         bufferSize_ = ARRAY_SIZE(in);
         bufferList_.resize(in.size());
         bufferList_ = in;
         pCmdMgr_ = pCmdMgr;
         VkResult result;
+        DEBUG_MSG("\tBuffer size: " << bufferSize_ << " bytes");
     
         // Create staging buffer in high performance memory
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
+        DEBUG_MSG("\tCreating a staging buffer...");
         result = createBuffer(bufferSize_, 
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -166,11 +180,13 @@ private:
         if (result != VK_SUCCESS) return result;
 
         // Copy the buffer into CPU accessable memory
+        DEBUG_MSG("\tCopying buffer to CPU accessable memory...");
         void* data;
         vkMapMemory(pCmdMgr_->getDevice(), stagingBufferMemory, 0, bufferSize_, 0, &data);
         memcpy(data, bufferList_.data(), (size_t) bufferSize_);
         vkUnmapMemory(pCmdMgr_->getDevice(), stagingBufferMemory);
 
+        DEBUG_MSG("\tCreating a buffer for GPU memory...");
         result = createBuffer(bufferSize_, 
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -178,10 +194,12 @@ private:
             bufferMemory_);
         if (result != VK_SUCCESS) return result;
 
+        DEBUG_MSG("\tCopying buffer to GPU memory...");
         // Copy the buffer into GPU memory
         result = copyBuffer(stagingBuffer, buffer_, bufferSize_);
         if (result != VK_SUCCESS) return result;
 
+        DEBUG_MSG("\tRemoving staging buffer...");
         // Destroy the temporary buffer
         vkDestroyBuffer(pCmdMgr_->getDevice(), stagingBuffer, nullptr);
         vkFreeMemory(pCmdMgr_->getDevice(), stagingBufferMemory, nullptr);
@@ -194,7 +212,10 @@ private:
         vkGetPhysicalDeviceMemoryProperties(pCmdMgr_->getPhysicalDevice(), &memProperties);
 
         for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-            if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) { return i; }}
+            if ((typeFilter & (1 << i)) && 
+                (memProperties.memoryTypes[i].propertyFlags & properties) == properties) { 
+                    DEBUG_MSG("\t\t\tFound memory type: " << i);
+                    return i; }}
         THROW_ERR("BufferManager ERROR: Failed to find suitable memory type!");
     }
 };

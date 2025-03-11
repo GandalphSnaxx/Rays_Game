@@ -61,11 +61,12 @@ public:
         const std::vector<uint32_t> &indices);
     
     void mainLoop();
+    void endLoop();
     void drawFrame();
-    operator  bool() const { return glfwWindowShouldClose(window_.getWindow()) == 0; }
+    operator  int() const { return glfwWindowShouldClose(window_.getWindow()); }
     /// @brief Checks if the window should not close
     /// @return `FALSE` if the window should close, `TRUE` if the window does not need to close.
-    bool operator!() const { return glfwWindowShouldClose(window_.getWindow()) != 0; }
+    bool operator!() const { return !glfwWindowShouldClose(window_.getWindow()); }
 
 private:
 /// @section Vulkan Handler Internal Classes

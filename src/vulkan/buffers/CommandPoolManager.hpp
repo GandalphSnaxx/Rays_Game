@@ -29,6 +29,7 @@ public:
     //     const uint32_t &imageIndex, 
     //     const VkFramebuffer &fb, 
     //     const VkPipeline &gfxPipeline);
+    
     VkDevice         getDevice        () const { return pRdPassMgr_->getDevice();        }
     VkPhysicalDevice getPhysicalDevice() const { return pRdPassMgr_->getPhysicalDevice();}
     VkCommandPool    getPool          () const { return commandPool_;                    }
