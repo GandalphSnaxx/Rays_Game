@@ -29,7 +29,8 @@ public:
 
     VkResult cleanup() {
         vkDestroyBuffer(pCmdMgr_->getDevice(), buffer_, nullptr);
-        vkFreeMemory(pCmdMgr_->getDevice(), bufferMemory_, nullptr); }
+        vkFreeMemory(pCmdMgr_->getDevice(), bufferMemory_, nullptr);
+        return VK_SUCCESS; }
 
     /// @brief Creates a buffer.
     /// @param size Buffer size as `VkDeviceSize`.

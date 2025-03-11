@@ -43,48 +43,7 @@ VkHandler::VkHandler() {
 VkHandler::~VkHandler() {
     DEBUG_MSG("Called VkHandler deconstructor");
 
-    // // Cleanup framebuffers
-    // framebuffers_.~FrameBufferManager();
-
-    // // CLeanup swapchain
-    // swapchain_.~SwapchainManager();
-    
-    // // Cleanup every uniform buffer
-    // uboManager_.~UniformBufferManager();
-
-    // // Destroy descriptor pool
-    // descriptors_.~DescriptorManager();
-
-    // // Destroy descriptor layout
-    // descLayout_.~DescriptorLayoutManager();
-    
-    // // Cleanup buffers
-    // indexBuffer_.~BufferManager();
-    // vertexBuffer_.~BufferManager();
-    
-    // // Destroy pipeline and pipeline layout
-    // pipeline_.~PipelineManager();
-
-    // // Destroy render pass
-    // renderPass_.~RenderPassManager();
-
-    // // Destroy the semaphores and fences when all commands have finished and no more syncronization is necessary
-    // sync_.~SyncManager();
-
-    // // Destroy the command pool
-    // cmdPool_.~CommandPoolManager();
-    
-    // // Destroy devices
-    // device_.~DeviceManager();
-
-    // // Destroy the surface and validation layers
-    // surface_.~SurfaceManager();
-
-    // // Destroy the instance
-    // instance_.~VulkanInstance();
-
-    // // Destroy the window and terminate GLFW
-    // window_.~WindowManager();
+    cleanup();
 }
 
 /// @section Public Member Functions
@@ -101,6 +60,7 @@ const std::vector<uint32_t> &indices) {
 }
 
 void VkHandler::cleanup() {
+    // Cleanup swapchain
     swapchain_.cleanup();
 
     // Cleanup every uniform buffer
