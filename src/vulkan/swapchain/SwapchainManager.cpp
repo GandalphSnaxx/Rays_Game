@@ -65,10 +65,12 @@ void SwapchainManager::cleanupSwapchain_() {
 
     // Destroy image views
     for (size_t i = 0; i < swapchainImageViews_.size(); i++) {
+        DEBUG_MSG("\tDestroying image view " << i);
         vkDestroyImageView(getDevice(), swapchainImageViews_[i], nullptr);
     }
 
     // Destroy swapchain
+    DEBUG_MSG("\tDestroying swapchain");
     vkDestroySwapchainKHR(getDevice(), swapchain_, nullptr);
 }
 

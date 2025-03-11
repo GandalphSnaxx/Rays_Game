@@ -43,14 +43,14 @@ VkHandler::VkHandler() {
 VkHandler::~VkHandler() {
     DEBUG_MSG("Called VkHandler deconstructor");
 
+    // Cleanup framebuffers
+    framebuffers_.~FrameBufferManager();
+
     // CLeanup swapchain
     swapchain_.~SwapchainManager();
     
     // Cleanup every uniform buffer
     uboManager_.~UniformBufferManager();
-
-    // Cleanup framebuffers
-    framebuffers_.~FrameBufferManager();
 
     // Destroy descriptor pool
     descriptors_.~DescriptorManager();

@@ -17,6 +17,9 @@ FrameBufferManager::FrameBufferManager() {
 
 FrameBufferManager::~FrameBufferManager() {
     DEBUG_MSG("Called FrameBufferManager deconstructor");
+    for (size_t i = 0; i < framebuffers_.size(); i++) {
+        vkDestroyFramebuffer(pRenderPassManager_->getDevice(), framebuffers_[i], nullptr);
+    }
 }
 
 /// @section Public Member Functions
