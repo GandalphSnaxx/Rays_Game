@@ -55,12 +55,12 @@ VkResult PipelineManager::init_(RenderPassManager *pRdPassMgr, DescriptorLayoutM
     // If using depth and/or stencil buffer, configure here using VkPipelineDepthStencilCreateInfo()
 
     // References the array of structures for all framebuffers and allows setting blend constants
-    ColorBlendState colorBlending({COLOR_BLEND_ATTACHMENT_NO_BLEND}, VK_LOGIC_OP_CLEAR);
+    ColorBlendState colorBlending({COLOR_BLEND_ATTACHMENT_NO_BLEND}, VK_LOGIC_OP_COPY);
 
     // Allow these values to be set at draw time
     // Describes what region of the framebuffer the output will be rendered to. Typically (0, 0) to (width, height)
     // We want this to be dynamic. Actual viewports and scissor rectangles will be set up at draw time
-    DynamicStateStage dynamicStates({VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR});
+    DynamicStateStage dynamicStates(DYNAMIC_STATES);
 
     // Create pipeline layout configuration
     Layout pipelineLayout(pRdPassMgr_->getDevice(), &pipelineLayout_, {pDescLayoutMgr_->getLayout()});

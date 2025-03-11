@@ -18,7 +18,8 @@ public:
 
     VkResult    init        (const std::vector<const char*> &validationLayers, const char *appName, const bool &enValLayers = false);
     VkInstance  getInstance () const { return instance_; }
-    bool        validLayers () const { return enValidationLayers_; }
+    bool        vLayersEn   () const { return enValidationLayers_; }
+    std::vector<const char*> getVLayers() const { return validationLayers_; }
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, 
         VkDebugUtilsMessageTypeFlagsEXT messageType, 
@@ -29,6 +30,7 @@ private:
     bool                        enValidationLayers_ = false; // Read only
     VkInstance                  instance_;                   // Read only
     VkDebugUtilsMessengerEXT    debugMessenger_;             // No read/write
+    std::vector<const char*>    validationLayers_;           // Read only
 
     VkResult createInstance_(const std::vector<const char*> &validationLayers, const char *appName, const bool &enValLayers);
     VkResult setupValidationLayers_();

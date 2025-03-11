@@ -55,7 +55,7 @@ struct ColorBlendState {
 public:
     ColorBlendState(
         const std::vector<VkPipelineColorBlendAttachmentState> &blendModes = {COLOR_BLEND_ATTACHMENT_NO_BLEND}, 
-        const VkLogicOp &logicOp = VK_LOGIC_OP_CLEAR);
+        const VkLogicOp &logicOp = VK_LOGIC_OP_COPY);
     ~ColorBlendState() {}
     // Delete default constructor so it is not accidentally used
     ColorBlendState::ColorBlendState() = delete;

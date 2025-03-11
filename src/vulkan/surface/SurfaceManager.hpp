@@ -30,7 +30,7 @@ public:
     VkSurfaceKHR getSurface () const { return surface_;                     }
     VkInstance   getInstance() const { return pInstanceMgr_->getInstance(); }
     GLFWwindow*  getPWindow () const { return pWindowMgr_->getWindow();     }
-    size_t       maxFIF     () const { return maxFIF_;                      }
+    size_t       getMaxFIF  () const { return maxFIF_;                      }
 
 private:
     VkSurfaceKHR    surface_;
