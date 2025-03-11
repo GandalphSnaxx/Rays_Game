@@ -24,10 +24,11 @@ VkResult SwapchainManager::init(DeviceManager *pDeviceMgr) {
     return init_(pDeviceMgr);
 }
 
-VkResult SwapchainManager::remake() {
+VkResult SwapchainManager::remake1() {
     // Handle minimization
     int width = 0, height = 0;
     glfwGetFramebufferSize(pDeviceMgr_->getPWindow(), &width, &height);
+    if (width == 0 || height == 0) { DEBUG_MSG("Window is minimized"); }
     // Idle while the window is minimized
     while (width == 0 || height == 0) {
         glfwGetFramebufferSize(pDeviceMgr_->getPWindow(), &width, &height);
@@ -35,7 +36,10 @@ VkResult SwapchainManager::remake() {
     }
 
     vkDeviceWaitIdle(pDeviceMgr_->getDevice());
+    return VK_SUCCESS;
+}
 
+VkResult SwapchainManager::remake2() {
     cleanupSwapchain_();
 
     init_(pDeviceMgr_);
@@ -66,12 +70,12 @@ void SwapchainManager::cleanupSwapchain_() {
     // Destroy image views
     for (size_t i = 0; i < swapchainImageViews_.size(); i++) {
         DEBUG_MSG("\tDestroying image view " << i);
-        vkDestroyImageView(getDevice(), swapchainImageViews_[i], nullptr);
+        vkDestroyImageView(pDeviceMgr_->getDevice(), swapchainImageViews_[i], nullptr);
     }
 
     // Destroy swapchain
     DEBUG_MSG("\tDestroying swapchain");
-    vkDestroySwapchainKHR(getDevice(), swapchain_, nullptr);
+    vkDestroySwapchainKHR(pDeviceMgr_->getDevice(), swapchain_, nullptr);
 }
 
 VkSurfaceFormatKHR SwapchainManager::chooseSwapSurfaceFormat_(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
@@ -117,11 +121,11 @@ VkExtent2D SwapchainManager::chooseSwapExtent_(const VkSurfaceCapabilitiesKHR &c
 VkResult SwapchainManager::createSwapchain_() {
     VkResult result;
     DEBUG_MSG("\t\tCreating swapchain...");
-    SupportDetails_ swapchainSupport{getPhysicalDevice(), getSurface()};
+    SupportDetails_ swapchainSupport{pDeviceMgr_->getPhysicalDevice(), pDeviceMgr_->getSurface()};
     
     VkSurfaceFormatKHR  surfaceFormat   = chooseSwapSurfaceFormat_  (swapchainSupport.formats);
     VkPresentModeKHR    presentMode     = chooseSwapPresentMode_    (swapchainSupport.presentModes);
-    VkExtent2D          extent          = chooseSwapExtent_         (swapchainSupport.capabilities, getPWindow());
+    VkExtent2D          extent          = chooseSwapExtent_         (swapchainSupport.capabilities, pDeviceMgr_->getPWindow());
 
     uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;
     if (swapchainSupport.capabilities.maxImageCount > 0 && imageCount > swapchainSupport.capabilities.maxImageCount) {
@@ -130,7 +134,7 @@ VkResult SwapchainManager::createSwapchain_() {
 
     VkSwapchainCreateInfoKHR createInfo{};
     createInfo.sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface          = getSurface();
+    createInfo.surface          = pDeviceMgr_->getSurface();
     createInfo.minImageCount    = imageCount;
     createInfo.imageFormat      = surfaceFormat.format;
     createInfo.imageColorSpace  = surfaceFormat.colorSpace;
@@ -138,7 +142,7 @@ VkResult SwapchainManager::createSwapchain_() {
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    result = queueFamilyIndices_.find(getPhysicalDevice(), getSurface());
+    result = queueFamilyIndices_.find(pDeviceMgr_->getPhysicalDevice(), pDeviceMgr_->getSurface());
     if (result != VK_SUCCESS) return result;
 
     uint32_t queueFamilyIndices[] = {queueFamilyIndices_.graphicsFamily.value(), queueFamilyIndices_.presentFamily.value()};
@@ -159,15 +163,15 @@ VkResult SwapchainManager::createSwapchain_() {
     createInfo.clipped          = VK_TRUE;
     createInfo.oldSwapchain     = VK_NULL_HANDLE;
 
-    result = vkCreateSwapchainKHR(getDevice(), &createInfo, nullptr, &swapchain_);
+    result = vkCreateSwapchainKHR(pDeviceMgr_->getDevice(), &createInfo, nullptr, &swapchain_);
     if (result != VK_SUCCESS) return result;
 
-    result = vkGetSwapchainImagesKHR(getDevice(), swapchain_, &imageCount, nullptr);
+    result = vkGetSwapchainImagesKHR(pDeviceMgr_->getDevice(), swapchain_, &imageCount, nullptr);
     if (result != VK_SUCCESS) return result;
 
     swapchainImages_.resize(imageCount);
 
-    result = vkGetSwapchainImagesKHR(getDevice(), swapchain_, &imageCount, swapchainImages_.data());
+    result = vkGetSwapchainImagesKHR(pDeviceMgr_->getDevice(), swapchain_, &imageCount, swapchainImages_.data());
     if (result != VK_SUCCESS) return result;
 
     swapchainImageFormat_   = surfaceFormat.format;
@@ -206,7 +210,7 @@ VkResult SwapchainManager::createImageViews_() {
         createInfo.subresourceRange.layerCount = 1;
 
         // Create the image view
-        result = vkCreateImageView(getDevice(), &createInfo, nullptr, &swapchainImageViews_[i]);
+        result = vkCreateImageView(pDeviceMgr_->getDevice(), &createInfo, nullptr, &swapchainImageViews_[i]);
         if (result != VK_SUCCESS) return result;
 
     }

@@ -121,7 +121,9 @@ void VkHandler::drawFrame() {
 
     // if result == VK_SUBOPTIMAL_KHR, the swapchain can still be used but the surface properties are not matched correctly
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-        swapchain_.remake(); // recreateSwapChain();
+        swapchain_.remake1(); // recreateSwapChain();
+        framebuffers_.cleanupFramebuffers();
+        swapchain_.remake2();
         indexBuffer_.remake();
         framebuffers_.remake();
         return;
@@ -187,7 +189,9 @@ void VkHandler::drawFrame() {
     // Check if the image has been resized
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window_.resized()) {
         window_.notResize();
-        swapchain_.remake();
+        swapchain_.remake1();
+        framebuffers_.cleanupFramebuffers();
+        swapchain_.remake2();
         indexBuffer_.remake();
         framebuffers_.remake();
     } else if (result != VK_SUCCESS) {

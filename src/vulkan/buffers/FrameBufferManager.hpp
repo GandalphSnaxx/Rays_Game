@@ -19,6 +19,7 @@ public:
     VkResult remake() { return init_(pRenderPassManager_); }
     std::vector<VkFramebuffer>& getFramebuffers() { return framebuffers_; }
     VkFramebuffer getFramebuffer(const size_t &i) const { return framebuffers_[i]; }
+    void cleanupFramebuffers();
 
 private:
     std::vector<VkFramebuffer>  framebuffers_;

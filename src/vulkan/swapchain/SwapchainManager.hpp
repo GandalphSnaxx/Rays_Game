@@ -17,7 +17,8 @@ public:
     ~SwapchainManager();
 
     VkResult init(DeviceManager*);
-    VkResult remake();
+    VkResult remake1();
+    VkResult remake2();
 
     VkSwapchainKHR                  getSwapchain     () const { return swapchain_;                  }
     VkFormat                        getScImageFormat () const { return swapchainImageFormat_;       }
