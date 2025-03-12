@@ -154,13 +154,13 @@ void VkHandler::drawFrame() {
     VkResult result;
     
     // Wait for the previous frame then manually reset them
-    sync_.wait(1, currentFrame_, VK_TRUE, UINT64_MAX);
-    // vkWaitForFences(
-    //     device_.getDevice(), 
-    //     1, 
-    //     sync_.getPFence(currentFrame_), 
-    //     VK_TRUE, 
-    //     UINT64_MAX);
+    // sync_.wait(1, currentFrame_, VK_TRUE, UINT64_MAX);
+    vkWaitForFences(
+        device_.getDevice(), 
+        1, 
+        sync_.getPFence(currentFrame_), 
+        VK_TRUE, 
+        UINT64_MAX);
 
     // Fix for a deadlock
     uint32_t imageIndex;
