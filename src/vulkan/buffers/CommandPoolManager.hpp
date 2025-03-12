@@ -24,7 +24,7 @@ public:
         const VkCommandPoolCreateFlagBits &flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
     VkResult cleanup();
     VkResult resetCB(const size_t &index, const VkCommandBufferResetFlagBits &flags = VkCommandBufferResetFlagBits(0)) 
-    { return vkResetCommandBuffer(commandBuffers_[index], flags); }
+    { vkResetCommandBuffer(commandBuffers_[index], flags); return VK_SUCCESS; }
     // VkResult recordCB(
     //     const uint32_t &currentFrame, 
     //     const uint32_t &imageIndex, 
@@ -35,7 +35,8 @@ public:
     VkPhysicalDevice getPhysicalDevice() const { return pRdPassMgr_->getPhysicalDevice();}
     VkCommandPool    getPool          () const { return commandPool_;                    }
     std::vector<VkCommandBuffer>& getCmdBuffers() { return commandBuffers_;              }
-    VkCommandBuffer  getCmdBuffer     (const size_t &i)const{ return commandBuffers_[i]; }
+    VkCommandBuffer  getCmdBuffer     (const size_t &i)const{ return  commandBuffers_[i];}
+    // VkCommandBuffer* getPCmdBuffer    (const size_t &i)const{ return &commandBuffers_[i];}
     VkQueue          getGraphicsQueue () const { return pRdPassMgr_->getGraphicsQueue(); }
     VkQueue          getPresentQueue  () const { return pRdPassMgr_->getPresentQueue();  }
 

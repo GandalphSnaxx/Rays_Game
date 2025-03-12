@@ -25,8 +25,9 @@ public:
     VkResult init(UniformBufferManager*, DescriptorLayoutManager*);
     VkResult cleanup();
     inline VkDescriptorSetLayout getLayout() const { return pLayoutMgr_->getLayout(); }
-    inline VkDescriptorSet getSet    (const size_t &i) const { return sets_[i]; }
-    inline VkDescriptorSet operator[](const size_t &i) const { return sets_[i]; }
+    inline VkDescriptorSet  getSet    (const size_t &i) const { return  sets_[i]; }
+    inline VkDescriptorSet* getPSet   (const size_t &i)       { return &sets_[i]; }
+    inline VkDescriptorSet  operator[](const size_t &i) const { return  sets_[i]; }
 
 private:
     UniformBufferManager*           pUBOMgr_;

@@ -96,4 +96,5 @@ private:
         const std::vector<Vertex>&, 
         const std::vector<uint32_t>&); // Internal init function
     VkResult recordCommandBuffer(const uint32_t &currentFrame, const uint32_t &imageIndex);
+    VkResult recreateSwapchain_();
 };

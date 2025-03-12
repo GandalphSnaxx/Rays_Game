@@ -30,12 +30,15 @@ public:
     VkResult getNextImage(const uint64_t&, const size_t&, const VkFence&, uint32_t*) const;
     VkResult resetFences(const uint32_t&, const size_t&);
     // void createSyncObjects(VkDevice device, size_t maxFramesInFlight);
-    const std::vector<VkSemaphore>& getImageAvailableSemaphores() const { return imageAvailableSemaphores_;     }
-    const VkSemaphore getImageAvailableSemaphore(const size_t &i) const { return imageAvailableSemaphores_[i];  }
-    const std::vector<VkSemaphore>& getRenderFinishedSemaphores() const { return renderFinishedSemaphores_;     }
-    const VkSemaphore getRenderFinishedSemaphore(const size_t &i) const { return renderFinishedSemaphores_[i];  }
-    const std::vector<VkFence>&     getInFlightFences          () const { return inFlightFences_;               }
-    const VkFence     getInFlightFence          (const size_t &i) const { return inFlightFences_[i];            }
+    const std::vector<VkSemaphore>& getImageSemaphores   () const { return  imageAvailableSemaphores_;     }
+    const VkSemaphore   getImageSemaphore (const size_t &i) const { return  imageAvailableSemaphores_[i];  }
+    const VkSemaphore*  getPImageSemaphore(const size_t &i) const { return &imageAvailableSemaphores_[i];  }
+    const std::vector<VkSemaphore>&   getRenderSemaphores() const { return  renderFinishedSemaphores_;     }
+    const VkSemaphore  getRenderSemaphore (const size_t &i) const { return  renderFinishedSemaphores_[i];  }
+    const VkSemaphore* getPRenderSemaphore(const size_t &i)       { return &renderFinishedSemaphores_[i];  }
+    const std::vector<VkFence>&       getInFlightFences  () const { return  inFlightFences_;               }
+    const VkFence      getFence           (const size_t &i) const { return  inFlightFences_[i];            }
+    const VkFence*     getPFence          (const size_t &i)       { return &inFlightFences_[i];            }
 
 private:
     std::vector<VkSemaphore>    imageAvailableSemaphores_;

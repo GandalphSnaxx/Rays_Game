@@ -28,14 +28,10 @@ VkResult FrameBufferManager::init(RenderPassManager *pRdPassMgr) {
 }
 
 VkResult FrameBufferManager::cleanup() {
-    cleanupFramebuffers();
-    return VK_SUCCESS;
-}
-
-void FrameBufferManager::cleanupFramebuffers() {
     for (size_t i = 0; i < framebuffers_.size(); i++) {
         vkDestroyFramebuffer(pRenderPassManager_->getDevice(), framebuffers_[i], nullptr);
     }
+    return VK_SUCCESS;
 }
 
 /// @section Private Member Functions

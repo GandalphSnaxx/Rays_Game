@@ -45,12 +45,13 @@ const uint32_t &fenceCount,
 const size_t &fenceIndex, 
 const VkBool32 &waitAll, 
 const uint64_t &timeout) const {
-    return vkWaitForFences(
+    vkWaitForFences(
         pSwapMgr_->getDevice(), 
         fenceCount, 
         &inFlightFences_[fenceIndex], 
         waitAll, 
         timeout);
+    return VK_SUCCESS;
 }
 
 VkResult SyncManager::getNextImage(const uint64_t &timeout, const size_t &index, const VkFence &fence, uint32_t *imageIdx) const {
@@ -64,7 +65,8 @@ VkResult SyncManager::getNextImage(const uint64_t &timeout, const size_t &index,
 }
 
 VkResult SyncManager::resetFences(const uint32_t &fenceCount, const size_t &index) {
-    return vkResetFences(pSwapMgr_->getDevice(), fenceCount, &inFlightFences_[index]);
+    vkResetFences(pSwapMgr_->getDevice(), fenceCount, &inFlightFences_[index]);
+    return VK_SUCCESS;
 }
 
 /// @section Private Member Functions

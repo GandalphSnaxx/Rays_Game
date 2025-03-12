@@ -155,18 +155,28 @@ void VkHandler::drawFrame() {
     
     // Wait for the previous frame then manually reset them
     sync_.wait(1, currentFrame_, VK_TRUE, UINT64_MAX);
+    // vkWaitForFences(
+    //     device_.getDevice(), 
+    //     1, 
+    //     sync_.getPFence(currentFrame_), 
+    //     VK_TRUE, 
+    //     UINT64_MAX);
 
-    // Fixing a deadlock
+    // Fix for a deadlock
     uint32_t imageIndex;
-    result = sync_.getNextImage(UINT64_MAX, currentFrame_, VK_NULL_HANDLE, &imageIndex);
+    // result = sync_.getNextImage(UINT64_MAX, currentFrame_, VK_NULL_HANDLE, &imageIndex);
+    result = vkAcquireNextImageKHR(
+        device_.getDevice(), 
+        swapchain_.getSwapchain(), 
+        UINT64_MAX, 
+        sync_.getImageSemaphore(currentFrame_), 
+        VK_NULL_HANDLE, 
+        &imageIndex);
 
     // if result == VK_SUBOPTIMAL_KHR, the swapchain can still be used but the surface properties are not matched correctly
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-        swapchain_.remake1(); // recreateSwapChain();
-        framebuffers_.cleanupFramebuffers();
-        swapchain_.remake2();
-        indexBuffer_.remake();
-        framebuffers_.remake();
+        DEBUG_MSG("Next image out of date!");
+        recreateSwapchain_();
         return;
     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
         VK_CHECK(result);
@@ -189,38 +199,37 @@ void VkHandler::drawFrame() {
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
     // Specify which semaphores to wait on before execution begins
-    VkSemaphore waitSemaphores[] = {sync_.getImageAvailableSemaphore(currentFrame_)};
+    VkSemaphore waitSemaphores[]    = {sync_.getImageSemaphore(currentFrame_)};
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = waitSemaphores;
-    submitInfo.pWaitDstStageMask = waitStages;
+    submitInfo.waitSemaphoreCount   = 1;
+    submitInfo.pWaitSemaphores      = waitSemaphores;
+    submitInfo.pWaitDstStageMask    = waitStages;
 
-    VkCommandBuffer cmdBuffers[] = {cmdPool_.getCmdBuffer(currentFrame_)};
     // Specify which command buffers to submit for execution
-    submitInfo.commandBufferCount = 1;
-    // submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
-    submitInfo.pCommandBuffers = cmdBuffers;
+    submitInfo.commandBufferCount   = 1;
+    submitInfo.pCommandBuffers      = &cmdPool_.getCmdBuffers()[currentFrame_];
 
     // Specify which semaphores to signal once the command buffer(s) have finished execution
-    VkSemaphore signalSemaphores[] = {sync_.getRenderFinishedSemaphore(currentFrame_)};
+    VkSemaphore signalSemaphores[]  = {sync_.getRenderSemaphore(currentFrame_)};
     submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = signalSemaphores;
+    submitInfo.pSignalSemaphores    = signalSemaphores;
 
     // Submit the command buffer to the graphics queue
-    result = vkQueueSubmit(swapchain_.getGraphicsQueue(), 1, &submitInfo, sync_.getInFlightFence(currentFrame_));
+    result = vkQueueSubmit(swapchain_.getGraphicsQueue(), 1, &submitInfo, sync_.getFence(currentFrame_));
+    if (result != VK_SUCCESS) return;
 
     // Submit the results back to the swapchain
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     // Specify which semaphores to wait on
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = signalSemaphores;
+    presentInfo.waitSemaphoreCount  = 1;
+    presentInfo.pWaitSemaphores     = signalSemaphores;
 
     // Specify the swapchain to present images to
-    VkSwapchainKHR swapChains[] = {swapchain_.getSwapchain()};
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = swapChains;
-    presentInfo.pImageIndices = &imageIndex;
+    VkSwapchainKHR swapchains[]     = {swapchain_.getSwapchain()};
+    presentInfo.swapchainCount      = 1;
+    presentInfo.pSwapchains         = swapchains;
+    presentInfo.pImageIndices       = &imageIndex;
     // Can be sent an array of VK_RESULTS to check if every swapchain presentation was successful
     presentInfo.pResults = nullptr; // Optional
 
@@ -229,12 +238,9 @@ void VkHandler::drawFrame() {
 
     // Check if the image has been resized
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window_.resized()) {
+        DEBUG_MSG("Window resized!");
         window_.notResize();
-        swapchain_.remake1();
-        framebuffers_.cleanupFramebuffers();
-        swapchain_.remake2();
-        indexBuffer_.remake();
-        framebuffers_.remake();
+        recreateSwapchain_();
     } else if (result != VK_SUCCESS) {
         VK_CHECK(result);
     }
@@ -275,23 +281,24 @@ const std::vector<uint32_t> &indices) {
 
 VkResult VkHandler::recordCommandBuffer(const uint32_t &currentFrame, const uint32_t &imageIndex) {
     VkResult result;
+    VkCommandBuffer commandBuffer = cmdPool_.getCmdBuffer(currentFrame);
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = 0; // Optional
     beginInfo.pInheritanceInfo = nullptr; // Optional
 
-    result = vkBeginCommandBuffer(cmdPool_.getCmdBuffer(currentFrame), &beginInfo);
+    result = vkBeginCommandBuffer(commandBuffer, &beginInfo);
     if (result != VK_SUCCESS) return result;
 
     // Bind the framebuffer for the swapchain image we want to draw
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType                = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass           = renderPass_.getRenderPass();
-    renderPassInfo.framebuffer          = framebuffers_.getFramebuffer(currentFrame);
+    renderPassInfo.framebuffer          = framebuffers_.getFramebuffer(imageIndex);
     // Define the size of the render area
     renderPassInfo.renderArea.offset    = {0, 0};
-    renderPassInfo.renderArea.extent    = renderPass_.getScExtent();
+    renderPassInfo.renderArea.extent    = swapchain_.getScExtent();
 
     // Define clear values for VK_ATTACHMENT_LOAD_OP_CLEAR
     VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
@@ -299,54 +306,88 @@ VkResult VkHandler::recordCommandBuffer(const uint32_t &currentFrame, const uint
     renderPassInfo.pClearValues = &clearColor;
 
     // Begin render pass
-    vkCmdBeginRenderPass(cmdPool_.getCmdBuffer(currentFrame), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         // Basic drawing commands:
 
         // Bind the graphics pipeline
-        vkCmdBindPipeline(cmdPool_.getCmdBuffer(currentFrame), VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_.getPipeline());
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_.getPipeline());
 
         // Since viewport and scissor state are dynamic, set them in the command buffer before issuing a draw command
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
-        viewport.width  = (float) renderPass_.getScExtent().width;
-        viewport.height = (float) renderPass_.getScExtent().height;
+        viewport.width  = (float) swapchain_.getScExtent().width;
+        viewport.height = (float) swapchain_.getScExtent().height;
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
-        vkCmdSetViewport(cmdPool_.getCmdBuffer(currentFrame), 0, 1, &viewport);
+        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
         VkRect2D scissor{};
         scissor.offset = {0, 0};
-        scissor.extent = renderPass_.getScExtent();
-        vkCmdSetScissor(cmdPool_.getCmdBuffer(currentFrame), 0, 1, &scissor);
+        scissor.extent = swapchain_.getScExtent();
+        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
         
         // Bind vertex buffers
         VkBuffer vertexBuffers[] = {vertexBuffer_.getBuffer()};
-        VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers(cmdPool_.getCmdBuffer(currentFrame), 0, 1, vertexBuffers, offsets);
+        VkDeviceSize   offsets[] = {0};
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
         // Bind index buffers
-        vkCmdBindIndexBuffer(cmdPool_.getCmdBuffer(currentFrame), indexBuffer_.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(commandBuffer, indexBuffer_.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-        VkDescriptorSet descSet[] = {descriptors_[currentFrame]};
         // Bind the descriptor set each frame to the descriptors in the shader
-        vkCmdBindDescriptorSets(cmdPool_.getCmdBuffer(currentFrame), 
+        vkCmdBindDescriptorSets(commandBuffer, 
             VK_PIPELINE_BIND_POINT_GRAPHICS, 
             pipeline_.getLayout(), 
             0, 
             1, 
-            descSet, 
+            descriptors_.getPSet(currentFrame), 
             0, 
             nullptr);
 
         // Issue a draw command using indicies
-        vkCmdDrawIndexed(cmdPool_.getCmdBuffer(currentFrame), static_cast<uint32_t>(indexBuffer_.size()), 1, 0, 0, 0);
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indexBuffer_.size()), 1, 0, 0, 0);
 
     // End the render pass
-    vkCmdEndRenderPass(cmdPool_.getCmdBuffer(currentFrame));
+    vkCmdEndRenderPass(commandBuffer);
 
     // End the command
-    result = vkEndCommandBuffer(cmdPool_.getCmdBuffer(currentFrame));
+    result = vkEndCommandBuffer(commandBuffer);
+    return result;
+}
+
+VkResult VkHandler::recreateSwapchain_() {
+    VkResult result;
+    DEBUG_MSG("Recreating swapchain...");
+
+    // Handle minimization
+    int width = 0, height = 0;
+    glfwGetFramebufferSize(window_.getWindow(), &width, &height);
+    // Idle while the window is minimized
+    if (width == 0 || height == 0) { DEBUG_MSG("Window minimized"); }
+    while (width == 0 || height == 0) {
+        glfwGetFramebufferSize(window_.getWindow(), &width, &height);
+        glfwWaitEvents();
+    }
+
+    vkDeviceWaitIdle(device_.getDevice());
+    // while (vkDeviceWaitIdle(device_.getDevice()) != VK_SUCCESS) {}
+    // result = vkDeviceWaitIdle(device_.getDevice());
+    // if (result != VK_SUCCESS) { DEBUG_MSG("Recreate Swapchain ERROR: Device wait idle failed! Vulkan error: " << result); return result; }
+
+    result = framebuffers_.cleanup();
+    if (result != VK_SUCCESS) { DEBUG_MSG("Recreate Swapchain ERROR: Cleanup framebuffers failed! Vulkan error: " << result); return result; }
+
+    result = swapchain_.cleanup();
+    if (result != VK_SUCCESS) { DEBUG_MSG("Recreate Swapchain ERROR: Cleanup swapchain failed! Vulkan error: " << result); return result; }
+
+    result = swapchain_.init(&device_);
+    if (result != VK_SUCCESS) { DEBUG_MSG("Recreate Swapchain ERROR: Init swapchain failed! Vulkan error: " << result); return result; }
+
+    result = framebuffers_.init(&renderPass_);
+    if (result != VK_SUCCESS) { DEBUG_MSG("Recreate Swapchain ERROR: Init framebuffers failed! Vulkan error: " << result); return result; }
+
+    DEBUG_MSG("Swapchain recreated!");
     return result;
 }
