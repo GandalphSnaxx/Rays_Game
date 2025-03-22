@@ -1,5 +1,5 @@
 # Ignore build files
-src/objs/**
+build/**
 main.ilk
 main.pdb
 main.exe
