@@ -30,8 +30,9 @@ private:
         SHUTDOWN_REQUESTED,
         MAX
     } GameStateFlags_;
-    // uint8_t gameState_;
+    
     FlagField<MAX, GameStateFlags_> gameState_;
+    vk::Engine engine_;
 };
 
 #endif // GAME_HPP
