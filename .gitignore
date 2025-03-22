@@ -2,3 +2,7 @@
 src/objs/**
 main.ilk
 main.pdb
+main.exe
+
+# Ignore old files
+Depreciated

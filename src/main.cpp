@@ -1,21 +1,23 @@
-#ifndef DEBUG
-#define DEBUG
-#endif
+/**
+ * @file main.cpp
+ * @author Ray Richter
+ * @brief Main cpp file
+ * @version 0.1
+ * @date 2025-03-20
+ * 
+ * @copyright Copyright (c) 2025
+ * 
+ */
+#include "game.hpp"
 
-// Print the vulkan extensions available when uncommented
-// #define PRINT_EXTENSIONS
+int main(const int argc, const void* argv) {
+    RaysGame game;
 
-#include "hello_triangle.hpp"
+    game.init();
 
-int main() {
-    HelloTriangleApplication app;
+    game.run();
 
-    try {
-        app.run();
-    } catch (const std::exception& e) {
-        std::cerr << e.what() << std::endl;
-        return EXIT_FAILURE;
-    }
+    game.close();
 
-    return EXIT_SUCCESS;
+    return 0;
 }

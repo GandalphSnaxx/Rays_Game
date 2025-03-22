@@ -78,10 +78,5 @@
         "xutility": "cpp",
         "fstream": "cpp"
     },
-    "cmake.ignoreCMakeListsMissing": true,
-    "doxdocgen.c.firstLine": "/**",
-    "doxdocgen.c.triggerSequence": "/**",
-    "doxdocgen.file.fileOrder": [
-
-    ]
+    "cmake.ignoreCMakeListsMissing": true
 }

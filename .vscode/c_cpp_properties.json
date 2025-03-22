@@ -5,7 +5,7 @@
             "includePath": [
                 "${default}",
                 "${workspaceFolder}/src/**",
-                "${workspaceFolder}/Libraries/**"
+                "${workspaceFolder}/third_party/**"
             ],
             "defines": [
                 "_DEBUG",
