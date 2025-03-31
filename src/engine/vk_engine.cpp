@@ -84,6 +84,13 @@ Return_t Engine::init(const VkInit& init /* = {} */) {
 }
 
 Return_t Engine::draw(const SDL_Event& event) {
+    // Check for errors
+    if (!flags_(INITALIZED)) {
+        ERR_LOG("Engine is not initalized");
+        flags_ += SHUTDOWN_REQUESTED;
+        return ERROR;
+    }
+    
     // Handle SDL events
     switch (event.type) {
         case SDL_EVENT_QUIT:
@@ -191,10 +198,10 @@ Return_t Engine::init_sdl_() {
 		ERR_LOG("Failed to initialize SDL: " << SDL_GetError());
 		return SDL_ERROR;
 	}
-    if (!SDL_Vulkan_LoadLibrary(nullptr)) {
-        ERR_LOG("Failed to load Vulkan library for SDL: " << SDL_GetError());
-        return SDL_ERROR;
-    }
+    // if (!SDL_Vulkan_LoadLibrary(nullptr)) {
+    //     ERR_LOG("Failed to load Vulkan library for SDL: " << SDL_GetError());
+    //     return SDL_ERROR;
+    // }
 
     // Use SDL to create a window
     vk_.window = SDL_CreateWindow(
@@ -569,14 +576,14 @@ Return_t Engine::init_sync_() {
 
 // Return_t Engine::init_descriptors_() {
 //     MSG_LOG("Initalizing descriptors...");
-
+//
 //     VkDescriptorPoolSize poolSize = { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2 };
 //     // std::vector<VkDescriptorPoolSize> poolSizes = {
 //     //     { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,          3 },
 //     //     { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,         3 },
 //     //     { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3 },
 //     // };
-
+//
 //     VkDescriptorPoolCreateInfo poolInfo = {};
 //     poolInfo.sType          = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 //     poolInfo.flags          = 0;
@@ -584,7 +591,7 @@ Return_t Engine::init_sync_() {
 //     poolInfo.poolSizeCount  = 1;
 //     poolInfo.pPoolSizes     = &poolSize;
 //     vk_.dispTable.createDescriptorPool(&poolInfo, nullptr, &background_.descriptorPool);
-
+//
 //     VkDescriptorSetLayoutBinding binding = { 
 //         .binding            = 0, 
 //         .descriptorType     = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 
@@ -598,20 +605,20 @@ Return_t Engine::init_sync_() {
 //     dslInfo.bindingCount    = 1;
 //     dslInfo.pBindings       = &binding;
 //     vk_.dispTable.createDescriptorSetLayout(&dslInfo, nullptr, &background_.descriptorSetLayout);
-
+//
 //     VkDescriptorSetAllocateInfo dsAllocateInfo = {};
 //     dsAllocateInfo.sType                = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 //     dsAllocateInfo.descriptorPool       = background_.descriptorPool;
 //     dsAllocateInfo.descriptorSetCount   = 1;
 //     dsAllocateInfo.pSetLayouts          = &background_.descriptorSetLayout;
 //     vk_.dispTable.allocateDescriptorSets(&dsAllocateInfo, &background_.descriptorSet);
-
+//
 //     return SUCCESS;
 // }
 
 // Return_t Engine::init_default_data_() {
 //     MSG_LOG("Initalizing default data...");
-
+//
 //     if (!init_frames_()) {
 //         ERR_LOG("Failed to initalize frame data");
 //         return ERROR;
@@ -621,19 +628,19 @@ Return_t Engine::init_sync_() {
 //         ERR_LOG("Failed to initalize triangle data");
 //         return ERROR;
 //     }
-
+//
 //     return SUCCESS;
 // }
 
 // Return_t Engine::init_renderables_() {
 //     MSG_LOG("Initalizing renderables...");
-
+//
 //     return SUCCESS;
 // }
 
 // Return_t Engine::init_imgui_() {
 //     MSG_LOG("Initalizing IMGUI...");
-
+//
 //     return SUCCESS;
 // }
 
@@ -681,7 +688,7 @@ Return_t Engine::create_swapchain_() {
 
 // Return_t Engine::create_cmd_pool_() {
 //     MSG_LOG("Creating command pools...");
-
+//
 //     // Create a command pool for commands submitted to the graphics queue for each frame and one for immediate submission.
 //     // Allow the pool to reset for individual commands
 //     VkCommandPoolCreateInfo poolInfo = {
@@ -690,27 +697,27 @@ Return_t Engine::create_swapchain_() {
 //         .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
 //         .queueFamilyIndex = vk_.device.get_queue_index(vkb::QueueType::graphics).value(),
 //     };
-
+//
 //     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 //         if (vk_.dispTable.createCommandPool(&poolInfo, nullptr, &frames_[i].cmdPool) != VK_SUCCESS) {
 //             ERR_LOG("Failed to create a frame based command pool");
 //             return VULKAN_ERROR; // Failed to create command pool
 //         }
-
+//
 //         // Allocate the default command buffer that is used for rendering
-
+//
 //         // Add command pools to their frame's deletion pool
 //         frames_[i].deleteQueue.add([&]{
 //             vk_.dispTable.destroyCommandPool(frames_[i].cmdPool, nullptr);
 //         });
 //     }
-
+//
 //     // Create the immediate command pool
 //     if (vk_.dispTable.createCommandPool(&poolInfo, nullptr, &renderData_.immCmdPool) != VK_SUCCESS) {
 //         ERR_LOG("Failed to create the immediate command pool");
 //         return VULKAN_ERROR;
 //     }
-
+//
 //     // Add frame deletion queue to the main deletion queue
 //     deleteQueue_.add([&]{
 //         for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -718,7 +725,7 @@ Return_t Engine::create_swapchain_() {
 //         }
 //         vk_.dispTable.destroyCommandPool(renderData_.immCmdPool, nullptr);
 //     });
-    
+//
 //     return SUCCESS;
 // }
 

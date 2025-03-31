@@ -1,9 +1,16 @@
 {
   "dependencies": [
+    {
+      "name": "sdl3",
+      "default-features": false,
+      "features": [
+        "vulkan"
+      ]
+    },
     "fmt",
     "glm",
-    "sdl3",
+    "vk-bootstrap",
     "vulkan-memory-allocator",
-    "vk-bootstrap"
+    "vulkan-sdk-components"
   ]
 }
