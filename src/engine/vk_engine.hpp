@@ -96,6 +96,7 @@ private:
     Return_t init_triangle_data_();
     Return_t create_cmd_pool_();
     Return_t create_cmd_buffers_();
+    Return_t init_triangle_vertex_buffers_();
     Return_t init_material_();
     Return_t recreate_swapchain_();
 

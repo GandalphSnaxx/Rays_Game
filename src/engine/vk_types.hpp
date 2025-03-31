@@ -12,8 +12,10 @@
 #ifndef VK_TYPES_HPP
 #define VK_TYPES_HPP
 
+#include <array>
 #include <fstream>
 #include <map>
+#include <vector>
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
 #include <SDL3/SDL.h>

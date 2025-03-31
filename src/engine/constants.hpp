@@ -15,7 +15,7 @@
 #include "vk_types.hpp"
 
 constexpr int               MAX_FRAMES_IN_FLIGHT = 2;
-constexpr std::string_view  SHADER_DIRECTORY = "../../src/shaders/bin";
+constexpr std::string_view  SHADER_DIRECTORY = "src/shaders/bin";
 
 /// @brief Labeled return data. Errors are negative, success are positive.
 typedef enum Return_t : int {

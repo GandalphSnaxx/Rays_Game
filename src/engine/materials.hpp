@@ -14,6 +14,21 @@
 
 #include "vk_types.hpp"
 
+struct Vertex {
+    glm::vec2 pos;
+    glm::vec3 color;
+
+    // static VkVertexInputBindingDescription getBindingDescription();
+    // static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions();
+};
+
+const std::vector<Vertex> TRIANGLE_VERTICES = {
+    // pos          | color
+    {{ 0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{ 0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{-0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}}
+};
+
 struct Background {
     VkPipeline              pipeline;
     VkPipelineLayout        layout;
@@ -54,7 +69,7 @@ struct Object {
     Buffer              vertexBuffer;
     Buffer              indexBuffer;
 
-    std::vector<glm::vec3>  vertices;
+    std::vector<Vertex>     vertices;
     std::vector<uint32_t>   indices;
 };
 

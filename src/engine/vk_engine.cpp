@@ -37,10 +37,10 @@ if(f < 0) {                     \
     MSG_LOG(#f << ": Success"); \
 }
 
-/// @brief Returns `true` if Return_t is NOT an error
+/// @brief Returns `false` if Return_t is NOT an error
 bool operator!(const Return_t& ret) {
     // std::cout << ret << " >= SUCCESS: " << (ret >= SUCCESS ? "TRUE" : "FALSE") << std::endl;
-    return ret >= SUCCESS;
+    return ret < SUCCESS;
 }
 
 using namespace vk;
@@ -90,7 +90,7 @@ Return_t Engine::draw(const SDL_Event& event) {
         flags_ += SHUTDOWN_REQUESTED;
         return ERROR;
     }
-    
+
     // Handle SDL events
     switch (event.type) {
         case SDL_EVENT_QUIT:
@@ -464,66 +464,71 @@ Return_t Engine::init_command_pools_() {
 Return_t Engine::init_command_buffers_() {
     MSG_LOG("Initalizing command buffers...");
 
-    renderData_.immCmdBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-
-    VkCommandBufferAllocateInfo allocInfo = {};
-    allocInfo.sType                 = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool           = renderData_.immCmdPool;
-    allocInfo.level                 = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount    = (uint32_t)renderData_.immCmdBuffers.size();
-
-    if (vk_.dispTable.allocateCommandBuffers(&allocInfo, renderData_.immCmdBuffers.data()) != VK_SUCCESS) {
-        ERR_LOG("Failed to allocate command buffers");
-        return COMMAND_ERROR;
+    if (!init_triangle_vertex_buffers_()) {
+        ERR_LOG("Failed to initalize triangle vertex buffers");
+        return BUFFER_ERROR;
     }
 
-    for (int i = 0; i < renderData_.immCmdBuffers.size(); i++) {
-        VkCommandBufferBeginInfo begin_info = {};
-        begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    // renderData_.immCmdBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
-        if (vk_.dispTable.beginCommandBuffer(renderData_.immCmdBuffers[i], &begin_info) != VK_SUCCESS) {
-            ERR_LOG("Failed to begin recording command buffer");
-            return BUFFER_ERROR;
-        }
+    // VkCommandBufferAllocateInfo allocInfo = {};
+    // allocInfo.sType                 = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    // allocInfo.commandPool           = renderData_.immCmdPool;
+    // allocInfo.level                 = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    // allocInfo.commandBufferCount    = (uint32_t)renderData_.immCmdBuffers.size();
 
-        VkRenderPassBeginInfo render_pass_info = {};
-        render_pass_info.sType              = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        render_pass_info.renderPass         = renderData_.renderPass;
-        render_pass_info.framebuffer        = renderData_.framebuffers[i];
-        render_pass_info.renderArea.offset  = { 0, 0 };
-        render_pass_info.renderArea.extent  = vk_.swapchain.extent;
-        VkClearValue clearColor{ { { 0.0f, 0.0f, 0.0f, 1.0f } } };
-        render_pass_info.clearValueCount = 1;
-        render_pass_info.pClearValues = &clearColor;
+    // if (vk_.dispTable.allocateCommandBuffers(&allocInfo, renderData_.immCmdBuffers.data()) != VK_SUCCESS) {
+    //     ERR_LOG("Failed to allocate command buffers");
+    //     return COMMAND_ERROR;
+    // }
 
-        VkViewport viewport = {};
-        viewport.x          = 0.0f;
-        viewport.y          = 0.0f;
-        viewport.width      = (float)vk_.swapchain.extent.width;
-        viewport.height     = (float)vk_.swapchain.extent.height;
-        viewport.minDepth   = 0.0f;
-        viewport.maxDepth   = 1.0f;
+    // for (int i = 0; i < renderData_.immCmdBuffers.size(); i++) {
+    //     VkCommandBufferBeginInfo begin_info = {};
+    //     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-        VkRect2D scissor = {};
-        scissor.offset = { 0, 0 };
-        scissor.extent = vk_.swapchain.extent;
+    //     if (vk_.dispTable.beginCommandBuffer(renderData_.immCmdBuffers[i], &begin_info) != VK_SUCCESS) {
+    //         ERR_LOG("Failed to begin recording command buffer");
+    //         return BUFFER_ERROR;
+    //     }
 
-        vk_.dispTable.cmdSetViewport(renderData_.immCmdBuffers[i], 0, 1, &viewport);
-        vk_.dispTable.cmdSetScissor(renderData_.immCmdBuffers[i], 0, 1, &scissor);
+    //     VkRenderPassBeginInfo render_pass_info = {};
+    //     render_pass_info.sType              = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    //     render_pass_info.renderPass         = renderData_.renderPass;
+    //     render_pass_info.framebuffer        = renderData_.framebuffers[i];
+    //     render_pass_info.renderArea.offset  = { 0, 0 };
+    //     render_pass_info.renderArea.extent  = vk_.swapchain.extent;
+    //     VkClearValue clearColor{ { { 0.0f, 0.0f, 0.0f, 1.0f } } };
+    //     render_pass_info.clearValueCount = 1;
+    //     render_pass_info.pClearValues = &clearColor;
 
-        vk_.dispTable.cmdBeginRenderPass(renderData_.immCmdBuffers[i], &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+    //     VkViewport viewport = {};
+    //     viewport.x          = 0.0f;
+    //     viewport.y          = 0.0f;
+    //     viewport.width      = (float)vk_.swapchain.extent.width;
+    //     viewport.height     = (float)vk_.swapchain.extent.height;
+    //     viewport.minDepth   = 0.0f;
+    //     viewport.maxDepth   = 1.0f;
 
-        vk_.dispTable.cmdBindPipeline(renderData_.immCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, triangle_.material.pipeline);
+    //     VkRect2D scissor = {};
+    //     scissor.offset = { 0, 0 };
+    //     scissor.extent = vk_.swapchain.extent;
 
-        vk_.dispTable.cmdDraw(renderData_.immCmdBuffers[i], 3, 1, 0, 0);
+    //     vk_.dispTable.cmdSetViewport(renderData_.immCmdBuffers[i], 0, 1, &viewport);
+    //     vk_.dispTable.cmdSetScissor(renderData_.immCmdBuffers[i], 0, 1, &scissor);
 
-        vk_.dispTable.cmdEndRenderPass(renderData_.immCmdBuffers[i]);
+    //     vk_.dispTable.cmdBeginRenderPass(renderData_.immCmdBuffers[i], &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
 
-        if (vk_.dispTable.endCommandBuffer(renderData_.immCmdBuffers[i]) != VK_SUCCESS) {
-            MSG_LOG("Failed to record a command buffer");
-            return BUFFER_ERROR;
-        }
-    }
+    //     vk_.dispTable.cmdBindPipeline(renderData_.immCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, triangle_.material.pipeline);
+
+    //     vk_.dispTable.cmdDraw(renderData_.immCmdBuffers[i], 3, 1, 0, 0);
+
+    //     vk_.dispTable.cmdEndRenderPass(renderData_.immCmdBuffers[i]);
+
+    //     if (vk_.dispTable.endCommandBuffer(renderData_.immCmdBuffers[i]) != VK_SUCCESS) {
+    //         MSG_LOG("Failed to record a command buffer");
+    //         return BUFFER_ERROR;
+    //     }
+    // }
 
     return SUCCESS;
 }
@@ -654,7 +659,7 @@ Return_t Engine::create_surface_sdl_() {
     // VkSurfaceKHR surface = VK_NULL_HANDLE;
     // auto err = SDL_Vulkan_CreateSurface(vk_.window, vk_.instance, nullptr, &surface);
     if (!SDL_Vulkan_CreateSurface(vk_.window, vk_.instance, nullptr, &vk_.surface)) { 
-        ERR_LOG("Failed to create a surface: " << SDL_GetError());
+        ERR_LOG("Failed to create a surface with SDL: " << SDL_GetError());
         return SDL_ERROR; 
     }
 
@@ -853,28 +858,34 @@ Return_t Engine::init_triangle_pipeline_() {
 
     VkPipelineShaderStageCreateInfo shaderStages[] = { vertStageInfo, fragStageInfo };
 
-    std::array<VkVertexInputBindingDescription, 1> bindingDesc;
-    bindingDesc[0].binding      = 0;
-    bindingDesc[0].stride       = sizeof(glm::vec3);
-    bindingDesc[0].inputRate    = VK_VERTEX_INPUT_RATE_VERTEX;
+    // std::array<VkVertexInputBindingDescription, 1> bindingDesc;
+    // bindingDesc[0].binding      = 0;
+    // bindingDesc[0].stride       = sizeof(glm::vec3);
+    // bindingDesc[0].inputRate    = VK_VERTEX_INPUT_RATE_VERTEX;
 
-    std::array<VkVertexInputAttributeDescription, 1> attributeDesc;
-    attributeDesc[0].location   = 0;
-    attributeDesc[0].binding    = bindingDesc[0].binding;
-    attributeDesc[0].format     = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDesc[0].offset     = 0;
+    // std::array<VkVertexInputAttributeDescription, 1> attributeDesc;
+    // attributeDesc[0].location   = 0;
+    // attributeDesc[0].binding    = bindingDesc[0].binding;
+    // attributeDesc[0].format     = VK_FORMAT_R32G32B32_SFLOAT;
+    // attributeDesc[0].offset     = 0;
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount   = (uint32_t)bindingDesc.size();
-    vertexInputInfo.pVertexBindingDescriptions      = bindingDesc.data();
-    vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)attributeDesc.size();
-    vertexInputInfo.pVertexAttributeDescriptions    = attributeDesc.data();
+    // vertexInputInfo.vertexBindingDescriptionCount   = (uint32_t)bindingDesc.size();
+    // vertexInputInfo.pVertexBindingDescriptions      = bindingDesc.data();
+    // vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)attributeDesc.size();
+    // vertexInputInfo.pVertexAttributeDescriptions    = attributeDesc.data();
 
-    // VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
-    // vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    // vertexInputInfo.vertexBindingDescriptionCount   = 0;
-    // vertexInputInfo.vertexAttributeDescriptionCount = 0;
+    // auto bindingDescription     = Vertex::getBindingDescription();
+    // auto attributeDescriptions  = Vertex::getAttributeDescriptions();
+
+    // vertexInputInfo.vertexBindingDescriptionCount   = 1;
+    // vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+    // vertexInputInfo.pVertexBindingDescriptions      = &bindingDescription;
+    // vertexInputInfo.pVertexAttributeDescriptions    = attributeDescriptions.data();
+
+    vertexInputInfo.vertexBindingDescriptionCount   = 0;
+    vertexInputInfo.vertexAttributeDescriptionCount = 0;
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -1009,11 +1020,7 @@ Return_t Engine::init_triangle_data_() {
     triangle_.vertices.resize(3);
     triangle_.indices.resize(3);
 
-    triangle_.vertices = {
-        {-0.5f, -0.5f, 0.0f},
-        { 0.0f,  0.5f, 0.0f},
-        { 0.5f, -0.5f, 0.0f},
-    };
+    triangle_.vertices = TRIANGLE_VERTICES;
 
     triangle_.indices = { 0, 1, 2 };
 
@@ -1188,6 +1195,26 @@ Return_t Engine::load_shader_(const std::filesystem::path& path, VkShaderModule*
         ERR_LOG("Failed to load shader");
         return FILE_ERROR;
     }
+    return SUCCESS;
+}
+
+Return_t Engine::init_triangle_vertex_buffers_() {
+    // VkBufferCreateInfo bufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+    // bufferInfo.size = sizeof(triangle_.vertices[0]) * triangle_.vertices.size();
+    // bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    
+    // VmaAllocationCreateInfo allocInfo = {};
+    // allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+    
+    // VkBuffer buffer;
+    // VmaAllocation allocation;
+    // vmaCreateBuffer(allocator_, 
+    //     &bufferInfo, 
+    //     &allocInfo, 
+    //     &triangle_.vertexBuffer.handle, 
+    //     &triangle_.vertexBuffer.allocation, 
+    //     nullptr);
+
     return SUCCESS;
 }
 
