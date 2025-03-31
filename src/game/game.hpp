@@ -26,7 +26,7 @@ public:
 
 private:
     typedef enum GameStateFlags_ {
-        INITALIZED,
+        INITALIZED, CLOSED,
         MINIMIZED,
         RESIZE_REQUESTED,
         SHUTDOWN_REQUESTED,

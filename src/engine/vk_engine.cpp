@@ -26,11 +26,11 @@
 // #define MSG_LOG(m) message_log_(m, __FILENAME__, __LINE__)
 // #define ERR_LOG(m) error_log_(m, __FILENAME__, __LINE__)
 
-#define MSG_LOG(m) std::cout << "[ENGINE] Message in " << __FILENAME__ << " at line " << __LINE__ << "\t - \"" << m << "\"\n"
-#define ERR_LOG(m) std::cout << "[ENGINE] Error   in " << __FILENAME__ << " at line " << __LINE__ << "\t - \"" << m << "\"\n"
+#define MSG_LOG(m) std::cout << "[ENGINE] Message in " << __FILENAME__ << " at line " << __LINE__ << "\t - \"" << m << "\"" << std::endl
+#define ERR_LOG(m) std::cout << "[ENGINE] ERROR   in " << __FILENAME__ << " at line " << __LINE__ << "\t - \"" << m << "\"" << std::endl
 
 #define ERR_CHECK(f, e)         \
-if(!f) {                        \
+if(f < 0) {                     \
     ERR_LOG(#f << ": Fail");    \
     return e;                   \
 } else {                        \
@@ -39,7 +39,8 @@ if(!f) {                        \
 
 /// @brief Returns `true` if Return_t is NOT an error
 bool operator!(const Return_t& ret) {
-    return ret >= 0;
+    // std::cout << ret << " >= SUCCESS: " << (ret >= SUCCESS ? "TRUE" : "FALSE") << std::endl;
+    return ret >= SUCCESS;
 }
 
 using namespace vk;
@@ -53,10 +54,17 @@ Return_t Engine::init(const VkInit& init /* = {} */) {
 
     init_ = init;
     if(init_.validationLayersEnable) {
+        MSG_LOG("Vulkan validation layers enabled");
         flags_ += VALIDATION_LAYERS; // Add Vulkan validation layers
     }
 
     // Initalize each part
+    // if (!init_sdl_()) {
+    //     ERR_LOG("Failed to initalize SDL");
+    //     return SDL_ERROR;
+    // } else {
+    //     MSG_LOG("SDL initalized");
+    // }
     ERR_CHECK(init_sdl_(),              SDL_ERROR           );
     ERR_CHECK(init_vulkan_(),           VULKAN_ERROR        );
     ERR_CHECK(init_swapchain_(),        SWAPCHAIN_ERROR     );
@@ -75,7 +83,14 @@ Return_t Engine::init(const VkInit& init /* = {} */) {
     return SUCCESS;
 }
 
-Return_t Engine::draw() {
+Return_t Engine::draw(const SDL_Event& event) {
+    // Handle SDL events
+    switch (event.type) {
+        case SDL_EVENT_QUIT:
+            flags_ += SHUTDOWN_REQUESTED;
+            break;
+    }
+
     // Begin the current frames command buffer
     // call draw background
     // call draw triangle
@@ -176,17 +191,21 @@ Return_t Engine::init_sdl_() {
 		ERR_LOG("Failed to initialize SDL: " << SDL_GetError());
 		return SDL_ERROR;
 	}
+    if (!SDL_Vulkan_LoadLibrary(nullptr)) {
+        ERR_LOG("Failed to load Vulkan library for SDL: " << SDL_GetError());
+        return SDL_ERROR;
+    }
 
     // Use SDL to create a window
     vk_.window = SDL_CreateWindow(
         init_.appName,
-        vk_.extent.width,
-        vk_.extent.height,
-        WINDOW_FLAGS);
+        init_.defaultWindowSize.width,
+        init_.defaultWindowSize.height,
+        SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
 
     // Check for errors
     if (vk_.window == nullptr) {
-        ERR_LOG("Failed to create a window");
+        ERR_LOG("Failed to create a window: " << SDL_GetError());
         return SDL_ERROR;
     }
 
@@ -203,16 +222,20 @@ Return_t Engine::init_vulkan_() {
     MSG_LOG("Initalizing Vulkan...");
 
     // Use VkBootstrap to initalize Vulkan
-    { // Create a Vulkan instance
+    { // Create a Vulkan instance. Get the required SDL extensions
+        uint32_t extensionCount = 0;
+        const char* const* extensions = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
+
         vkb::InstanceBuilder builder;
         auto inst_ret = builder
             .set_app_name(init_.appName)
             .request_validation_layers(flags_(VALIDATION_LAYERS))
+            .enable_extensions(extensionCount, extensions)
             .use_default_debug_messenger()
             .build();
 
         if (!inst_ret) {
-            ERR_LOG(("Failed to create a Vulkan instance. Error message: " + inst_ret.error().message()).c_str());
+            ERR_LOG("Failed to create a Vulkan instance. Error message: " << inst_ret.error().message());
             return VK_BOOTSTRAP_ERROR;
         }
         
@@ -621,14 +644,14 @@ Return_t Engine::init_sync_() {
 Return_t Engine::create_surface_sdl_() {
     MSG_LOG("Creating a surface with SDL...");
 
-    VkSurfaceKHR surface = VK_NULL_HANDLE;
-    auto err = SDL_Vulkan_CreateSurface(vk_.window, vk_.instance, nullptr, &surface);
-    if (err) { 
-        ERR_LOG("Failed to create a surface");
+    // VkSurfaceKHR surface = VK_NULL_HANDLE;
+    // auto err = SDL_Vulkan_CreateSurface(vk_.window, vk_.instance, nullptr, &surface);
+    if (!SDL_Vulkan_CreateSurface(vk_.window, vk_.instance, nullptr, &vk_.surface)) { 
+        ERR_LOG("Failed to create a surface: " << SDL_GetError());
         return SDL_ERROR; 
     }
 
-    vk_.surface = surface;
+    // vk_.surface = surface;
 
     return SUCCESS;
 }

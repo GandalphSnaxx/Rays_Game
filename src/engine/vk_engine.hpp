@@ -28,8 +28,9 @@ public:
     ~Engine() { if(!flags_(CLEANED)) { clean(); } }
 
     Return_t init(const VkInit& init = {});
-    Return_t draw();
+    Return_t draw(const SDL_Event& event);
     Return_t clean();
+    bool should_close() const { return flags_(SHUTDOWN_REQUESTED); }
 
     Return_t fullscreen();
     Return_t fullscreen_borderless();
