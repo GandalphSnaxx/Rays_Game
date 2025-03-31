@@ -1,10 +1,7 @@
 {
     "C_Cpp.default.includePath": [
         "${VULKAN_SDK}/Include",
-        "${workspaceFolder}/src",
-        "${workspaceFolder}/Libraries/glfw/include",
-        "${workspaceFolder}/Libraries/glm",
-        "${workspaceFolder}/Libraries/stb"
+        "${workspaceFolder}/src"
     ],
     "files.associations": {
         "chrono": "cpp",
@@ -76,7 +73,10 @@
         "xtr1common": "cpp",
         "xtree": "cpp",
         "xutility": "cpp",
-        "fstream": "cpp"
+        "fstream": "cpp",
+        "thread": "cpp",
+        "deque": "cpp"
     },
-    "cmake.ignoreCMakeListsMissing": true
+    "cmake.ignoreCMakeListsMissing": true,
+    "cmake.useVsDeveloperEnvironment": "always"
 }

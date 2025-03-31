@@ -69,7 +69,7 @@
 // #define FLAGFIELD_DEBUG
 // #define FLAGFIELD_NO_VALIDATE
 
-#include <cstdint>
+// #include <cstdint>
 #include <array>
 #include <stdexcept>
 #include <ostream>

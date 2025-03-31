@@ -8,6 +8,10 @@
  * @copyright Copyright (c) 2025
  * 
  */
+#pragma once
+#ifndef DELETE_QUEUE_HPP
+#define DELETE_QUEUE_HPP
+
 #include <deque>
 #include <functional>
 #include <vector>
@@ -28,3 +32,5 @@ struct DeletionQueue {
 		deletors.clear();
 	}
 };
+
+#endif // DELETE_QUEUE_HPP

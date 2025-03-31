@@ -8,7 +8,8 @@
  * @copyright Copyright (c) 2025
  * 
  */
-#include "game.hpp"
+#include "game/game.hpp"
+#include <fmt/core.h>
 
 int main(const int argc, const void* argv) {
     RaysGame game;
@@ -18,6 +19,8 @@ int main(const int argc, const void* argv) {
     game.run();
 
     game.close();
+
+    fmt::print("Hello World!\n");
 
     return 0;
 }

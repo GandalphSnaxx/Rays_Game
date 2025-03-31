@@ -3,7 +3,8 @@
     "configurations": [
         {
             "name": "Windows Launch",
-            "program": "${workspaceFolder}/main.exe",
+            // "program": "${workspaceFolder}/main.exe",
+            "program": "${workspaceFolder}/build/Debug/RaysGame.exe",
             "type": "cppvsdbg",
             "request": "launch",
             "cwd": "${workspaceFolder}"

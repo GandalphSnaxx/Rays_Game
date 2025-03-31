@@ -12,8 +12,10 @@
 #ifndef GAME_HPP
 #define GAME_HPP
 
-#include <vk_engine.hpp>
+// #include <vk_engine.hpp>
+#include "../engine/vk_engine.hpp"
 #include <FlagField.hpp>
+#include "requirements/requirements.hpp"
 
 class RaysGame {
 public:
@@ -33,6 +35,10 @@ private:
     
     FlagField<MAX, GameStateFlags_> gameState_;
     vk::Engine engine_;
+
+    Requirements gameWinRequirement = { .description = "Meeting this requirement wins the game!" };
+
+    void BuildRequirements_();
 };
 
 #endif // GAME_HPP
