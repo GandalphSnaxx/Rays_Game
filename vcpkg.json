@@ -1,0 +1,9 @@
+{
+  "dependencies": [
+    "fmt",
+    "glm",
+    "sdl3",
+    "vulkan-memory-allocator",
+    "vk-bootstrap"
+  ]
+}
