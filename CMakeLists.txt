@@ -30,9 +30,12 @@ set(FF_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/Libraries/FlagField")
 include_directories(${FF_INCLUDE_DIR})
 
 # Link Vulkan library
-target_link_libraries(RaysGame PRIVATE Vulkan::Vulkan)
-target_link_libraries(RaysGame PRIVATE fmt::fmt)
-target_link_libraries(RaysGame PRIVATE glm::glm)
-target_link_libraries(RaysGame PRIVATE SDL3::SDL3)
-target_link_libraries(RaysGame PRIVATE vk-bootstrap::vk-bootstrap)
-target_link_libraries(RaysGame PRIVATE Vulkan::Vulkan GPUOpen::VulkanMemoryAllocator)
+target_link_libraries(
+    RaysGame PRIVATE 
+    Vulkan::Vulkan
+    fmt::fmt
+    glm::glm
+    SDL3::SDL3
+    vk-bootstrap::vk-bootstrap
+    GPUOpen::VulkanMemoryAllocator
+)
