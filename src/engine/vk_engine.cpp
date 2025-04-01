@@ -67,6 +67,7 @@ Return_t Engine::init(const VkInit& init /* = {} */) {
     // }
     ERR_CHECK(init_sdl_(),              SDL_ERROR           );
     ERR_CHECK(init_vulkan_(),           VULKAN_ERROR        );
+    ERR_CHECK(init_vma_(),              VMA_ERROR           );
     ERR_CHECK(init_swapchain_(),        SWAPCHAIN_ERROR     );
     ERR_CHECK(init_queues_(),           SYNC_ERROR          );
     ERR_CHECK(init_render_pass_(),      RENDER_PASS_ERROR   );
@@ -102,15 +103,18 @@ Return_t Engine::draw(const SDL_Event& event) {
     // call draw background
     // call draw triangle
     // VkCommandBuffer cmd = get_active_command_buffer_();
-    vk_.dispTable.waitForFences(1, &renderData_.inFlightFences[renderData_.currentFrame], VK_TRUE, UINT64_MAX);
 
-    uint32_t imageIndex = 0;
+    // Wait for the previous frame to finish rendering
+    vk_.dispTable.waitForFences(1, &renderData_.inFlightFences[renderData_.currentFrame], VK_TRUE, UINT64_MAX);
+    // Clear the current frame's delete queue
+
+    uint32_t swapchainImageIndex = 0;
     VkResult result = vk_.dispTable.acquireNextImageKHR(
         vk_.swapchain, 
         UINT64_MAX, 
         renderData_.availableSemaphores[renderData_.currentFrame], 
         VK_NULL_HANDLE, 
-        &imageIndex);
+        &swapchainImageIndex);
     
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
         return recreate_swapchain_();
@@ -119,10 +123,18 @@ Return_t Engine::draw(const SDL_Event& event) {
         return ERROR;
     }
 
-    if (renderData_.imageInFlight[imageIndex] != VK_NULL_HANDLE) {
-        vk_.dispTable.waitForFences(1, &renderData_.imageInFlight[imageIndex], VK_TRUE, UINT64_MAX);
+    // Update the current draw extent
+    vk_.extent = vk_.swapchain.extent;
+
+    vk_.dispTable.resetFences(1, &renderData_.inFlightFences[renderData_.currentFrame]);
+
+    vk_.dispTable.resetCommandBuffer(renderData_.immCmdBuffers[renderData_.currentFrame], 0);
+    // recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
+
+    if (renderData_.imageInFlight[swapchainImageIndex] != VK_NULL_HANDLE) {
+        vk_.dispTable.waitForFences(1, &renderData_.imageInFlight[swapchainImageIndex], VK_TRUE, UINT64_MAX);
     }
-    renderData_.imageInFlight[imageIndex] = renderData_.imageInFlight[renderData_.currentFrame];
+    renderData_.imageInFlight[swapchainImageIndex] = renderData_.imageInFlight[renderData_.currentFrame];
 
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -133,13 +145,11 @@ Return_t Engine::draw(const SDL_Event& event) {
     submitInfo.pWaitSemaphores      = wait_semaphores;
     submitInfo.pWaitDstStageMask    = wait_stages;
     submitInfo.commandBufferCount   = 1;
-    submitInfo.pCommandBuffers      = &renderData_.immCmdBuffers[imageIndex];
+    submitInfo.pCommandBuffers      = &renderData_.immCmdBuffers[renderData_.currentFrame];
 
     VkSemaphore signal_semaphores[] = { renderData_.finishedSemaphore[renderData_.currentFrame] };
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores    = signal_semaphores;
-
-    vk_.dispTable.resetFences(1, &renderData_.inFlightFences[renderData_.currentFrame]);
 
     if (vk_.dispTable.queueSubmit(renderData_.graphicsQueue, 1, &submitInfo, renderData_.inFlightFences[renderData_.currentFrame]) != VK_SUCCESS) {
         ERR_LOG("Failed to submit draw command buffer");
@@ -154,7 +164,7 @@ Return_t Engine::draw(const SDL_Event& event) {
     VkSwapchainKHR swapchains[] = { vk_.swapchain };
     present_info.swapchainCount = 1;
     present_info.pSwapchains    = swapchains;
-    present_info.pImageIndices  = &imageIndex;
+    present_info.pImageIndices  = &swapchainImageIndex;
 
     result = vk_.dispTable.queuePresentKHR(renderData_.presentQueue, &present_info);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
@@ -290,19 +300,32 @@ Return_t Engine::init_vulkan_() {
     // Save the dispatch table
     vk_.dispTable = vk_.device.make_table();
 
+    deleteQueue_.add([&] {
+        vkb::destroy_device(vk_.device);
+        vkb::destroy_surface(vk_.instance, vk_.surface);
+        vkb::destroy_instance(vk_.instance);
+    });
+
+    return SUCCESS;
+}
+
+Return_t Engine::init_vma_() {
+    MSG_LOG("Initalizing VMA...");
+
     // Initalize the memory allocator
     VmaAllocatorCreateInfo allocInfo = ALLOC_INFO;
     allocInfo.physicalDevice    = vk_.device.physical_device;
     allocInfo.device            = vk_.device;
     allocInfo.instance          = vk_.instance;
+    allocInfo.flags             = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
     
-    vmaCreateAllocator(&allocInfo, &allocator_);
+    if (vmaCreateAllocator(&allocInfo, &allocator_) != VK_SUCCESS) {
+        ERR_LOG("Failed to create VMA allocator");
+        return VMA_ERROR;
+    }
 
     deleteQueue_.add([&] {
         vmaDestroyAllocator(allocator_);
-        vkb::destroy_device(vk_.device);
-        vkb::destroy_surface(vk_.instance, vk_.surface);
-        vkb::destroy_instance(vk_.instance);
     });
 
     return SUCCESS;
@@ -446,6 +469,7 @@ Return_t Engine::init_command_pools_() {
     // Allow the pool to reset for individual commands
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    // poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     poolInfo.queueFamilyIndex = vk_.device.get_queue_index(vkb::QueueType::graphics).value();
 
     // Create the immediate command pool
@@ -469,66 +493,67 @@ Return_t Engine::init_command_buffers_() {
         return BUFFER_ERROR;
     }
 
-    // renderData_.immCmdBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    renderData_.immCmdBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
-    // VkCommandBufferAllocateInfo allocInfo = {};
-    // allocInfo.sType                 = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    // allocInfo.commandPool           = renderData_.immCmdPool;
-    // allocInfo.level                 = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    // allocInfo.commandBufferCount    = (uint32_t)renderData_.immCmdBuffers.size();
+    VkCommandBufferAllocateInfo allocInfo = {};
+    allocInfo.sType                 = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool           = renderData_.immCmdPool;
+    allocInfo.level                 = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount    = (uint32_t)renderData_.immCmdBuffers.size();
 
-    // if (vk_.dispTable.allocateCommandBuffers(&allocInfo, renderData_.immCmdBuffers.data()) != VK_SUCCESS) {
-    //     ERR_LOG("Failed to allocate command buffers");
-    //     return COMMAND_ERROR;
-    // }
+    if (vk_.dispTable.allocateCommandBuffers(&allocInfo, renderData_.immCmdBuffers.data()) != VK_SUCCESS) {
+        ERR_LOG("Failed to allocate command buffers");
+        return COMMAND_ERROR;
+    }
 
-    // for (int i = 0; i < renderData_.immCmdBuffers.size(); i++) {
-    //     VkCommandBufferBeginInfo begin_info = {};
-    //     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    for (int i = 0; i < renderData_.immCmdBuffers.size(); i++) {
+        triangle_.draw(renderData_.immCmdBuffers[i], renderData_.renderPass, renderData_.framebuffers[i], vk_.extent);
+        // VkCommandBufferBeginInfo begin_info = {};
+        // begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-    //     if (vk_.dispTable.beginCommandBuffer(renderData_.immCmdBuffers[i], &begin_info) != VK_SUCCESS) {
-    //         ERR_LOG("Failed to begin recording command buffer");
-    //         return BUFFER_ERROR;
-    //     }
+        // if (vk_.dispTable.beginCommandBuffer(renderData_.immCmdBuffers[i], &begin_info) != VK_SUCCESS) {
+        //     ERR_LOG("Failed to begin recording command buffer");
+        //     return BUFFER_ERROR;
+        // }
 
-    //     VkRenderPassBeginInfo render_pass_info = {};
-    //     render_pass_info.sType              = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    //     render_pass_info.renderPass         = renderData_.renderPass;
-    //     render_pass_info.framebuffer        = renderData_.framebuffers[i];
-    //     render_pass_info.renderArea.offset  = { 0, 0 };
-    //     render_pass_info.renderArea.extent  = vk_.swapchain.extent;
-    //     VkClearValue clearColor{ { { 0.0f, 0.0f, 0.0f, 1.0f } } };
-    //     render_pass_info.clearValueCount = 1;
-    //     render_pass_info.pClearValues = &clearColor;
+        // VkRenderPassBeginInfo render_pass_info = {};
+        // render_pass_info.sType              = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        // render_pass_info.renderPass         = renderData_.renderPass;
+        // render_pass_info.framebuffer        = renderData_.framebuffers[i];
+        // render_pass_info.renderArea.offset  = { 0, 0 };
+        // render_pass_info.renderArea.extent  = vk_.swapchain.extent;
+        // VkClearValue clearColor{ { { 0.0f, 0.0f, 0.0f, 1.0f } } };
+        // render_pass_info.clearValueCount = 1;
+        // render_pass_info.pClearValues = &clearColor;
 
-    //     VkViewport viewport = {};
-    //     viewport.x          = 0.0f;
-    //     viewport.y          = 0.0f;
-    //     viewport.width      = (float)vk_.swapchain.extent.width;
-    //     viewport.height     = (float)vk_.swapchain.extent.height;
-    //     viewport.minDepth   = 0.0f;
-    //     viewport.maxDepth   = 1.0f;
+        // VkViewport viewport = {};
+        // viewport.x          = 0.0f;
+        // viewport.y          = 0.0f;
+        // viewport.width      = (float)vk_.swapchain.extent.width;
+        // viewport.height     = (float)vk_.swapchain.extent.height;
+        // viewport.minDepth   = 0.0f;
+        // viewport.maxDepth   = 1.0f;
 
-    //     VkRect2D scissor = {};
-    //     scissor.offset = { 0, 0 };
-    //     scissor.extent = vk_.swapchain.extent;
+        // VkRect2D scissor = {};
+        // scissor.offset = { 0, 0 };
+        // scissor.extent = vk_.swapchain.extent;
 
-    //     vk_.dispTable.cmdSetViewport(renderData_.immCmdBuffers[i], 0, 1, &viewport);
-    //     vk_.dispTable.cmdSetScissor(renderData_.immCmdBuffers[i], 0, 1, &scissor);
+        // vk_.dispTable.cmdSetViewport(renderData_.immCmdBuffers[i], 0, 1, &viewport);
+        // vk_.dispTable.cmdSetScissor(renderData_.immCmdBuffers[i], 0, 1, &scissor);
 
-    //     vk_.dispTable.cmdBeginRenderPass(renderData_.immCmdBuffers[i], &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+        // vk_.dispTable.cmdBeginRenderPass(renderData_.immCmdBuffers[i], &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
 
-    //     vk_.dispTable.cmdBindPipeline(renderData_.immCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, triangle_.material.pipeline);
+        // vk_.dispTable.cmdBindPipeline(renderData_.immCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, triangle_.material.pipeline);
 
-    //     vk_.dispTable.cmdDraw(renderData_.immCmdBuffers[i], 3, 1, 0, 0);
+        // vk_.dispTable.cmdDraw(renderData_.immCmdBuffers[i], 3, 1, 0, 0);
 
-    //     vk_.dispTable.cmdEndRenderPass(renderData_.immCmdBuffers[i]);
+        // vk_.dispTable.cmdEndRenderPass(renderData_.immCmdBuffers[i]);
 
-    //     if (vk_.dispTable.endCommandBuffer(renderData_.immCmdBuffers[i]) != VK_SUCCESS) {
-    //         MSG_LOG("Failed to record a command buffer");
-    //         return BUFFER_ERROR;
-    //     }
-    // }
+        // if (vk_.dispTable.endCommandBuffer(renderData_.immCmdBuffers[i]) != VK_SUCCESS) {
+        //     MSG_LOG("Failed to record a command buffer");
+        //     return BUFFER_ERROR;
+        // }
+    }
 
     return SUCCESS;
 }
@@ -876,16 +901,21 @@ Return_t Engine::init_triangle_pipeline_() {
     // vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)attributeDesc.size();
     // vertexInputInfo.pVertexAttributeDescriptions    = attributeDesc.data();
 
-    // auto bindingDescription     = Vertex::getBindingDescription();
+    // auto bindingDescriptions    = Vertex::getBindingDescription();
     // auto attributeDescriptions  = Vertex::getAttributeDescriptions();
+    { // Local scope for getting vertex descriptions
+        Vertex vertex;
+        auto bindingDescriptions    = vertex.getBindingDescription();
+        auto attributeDescriptions  = vertex.getAttributeDescriptions();
 
-    // vertexInputInfo.vertexBindingDescriptionCount   = 1;
-    // vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-    // vertexInputInfo.pVertexBindingDescriptions      = &bindingDescription;
-    // vertexInputInfo.pVertexAttributeDescriptions    = attributeDescriptions.data();
+        vertexInputInfo.vertexBindingDescriptionCount   = static_cast<uint32_t>(bindingDescriptions.size());
+        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+        vertexInputInfo.pVertexBindingDescriptions      = bindingDescriptions.data();
+        vertexInputInfo.pVertexAttributeDescriptions    = attributeDescriptions.data();
+    }
 
-    vertexInputInfo.vertexBindingDescriptionCount   = 0;
-    vertexInputInfo.vertexAttributeDescriptionCount = 0;
+    // vertexInputInfo.vertexBindingDescriptionCount   = 0;
+    // vertexInputInfo.vertexAttributeDescriptionCount = 0;
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -1199,21 +1229,27 @@ Return_t Engine::load_shader_(const std::filesystem::path& path, VkShaderModule*
 }
 
 Return_t Engine::init_triangle_vertex_buffers_() {
-    // VkBufferCreateInfo bufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-    // bufferInfo.size = sizeof(triangle_.vertices[0]) * triangle_.vertices.size();
-    // bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    // Create triangle vertex buffer
+    VkBufferCreateInfo bufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+    bufferInfo.size         = sizeof(triangle_.vertices[0]) * triangle_.vertices.size();
+    bufferInfo.usage        = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    bufferInfo.sharingMode  = VK_SHARING_MODE_EXCLUSIVE;
     
-    // VmaAllocationCreateInfo allocInfo = {};
-    // allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+    VmaAllocationCreateInfo allocInfo = {};
+    allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
     
     // VkBuffer buffer;
     // VmaAllocation allocation;
-    // vmaCreateBuffer(allocator_, 
-    //     &bufferInfo, 
-    //     &allocInfo, 
-    //     &triangle_.vertexBuffer.handle, 
-    //     &triangle_.vertexBuffer.allocation, 
-    //     nullptr);
+    vmaCreateBuffer(allocator_, 
+        &bufferInfo, 
+        &allocInfo, 
+        &triangle_.vertexBuffer.handle, 
+        &triangle_.vertexBuffer.allocation, 
+        nullptr);
+
+    deleteQueue_.add([&] {
+        vmaDestroyBuffer(allocator_, triangle_.vertexBuffer.handle, triangle_.vertexBuffer.allocation);
+    });
 
     return SUCCESS;
 }

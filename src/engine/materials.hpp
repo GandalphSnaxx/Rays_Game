@@ -13,13 +13,14 @@
 #define MATERIALS_HPP
 
 #include "vk_types.hpp"
+#include "constants.hpp"
 
 struct Vertex {
     glm::vec2 pos;
     glm::vec3 color;
 
-    // static VkVertexInputBindingDescription getBindingDescription();
-    // static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions();
+    static std::array<VkVertexInputBindingDescription, 1>   getBindingDescription();
+    static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions();
 };
 
 const std::vector<Vertex> TRIANGLE_VERTICES = {
@@ -71,6 +72,8 @@ struct Object {
 
     std::vector<Vertex>     vertices;
     std::vector<uint32_t>   indices;
+
+    Return_t draw(VkCommandBuffer& cmd, const VkRenderPass& renderPass, const VkFramebuffer& fb, const VkExtent2D& extent);
 };
 
 #endif

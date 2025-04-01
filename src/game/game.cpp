@@ -13,7 +13,7 @@
 
 bool RaysGame::init() {
     VkInit initState = { .appName = "Rays Game", .defaultWindowSize = { 800, 600 }, .validationLayersEnable = true };
-    if (!engine_.init(initState)) {
+    if (engine_.init(initState) < 0) {
         std::cout << "Engine initalization failed!" << std::endl;
         return true;
     }
@@ -22,7 +22,7 @@ bool RaysGame::init() {
     return false;
 }
 bool RaysGame::run() {
-    if (!gameState_(INITALIZED)) {
+    if (gameState_.isNSet(INITALIZED)) {
         std::cout << "Game is not initalized, cannot run!" << std::endl;
         return true;
     }

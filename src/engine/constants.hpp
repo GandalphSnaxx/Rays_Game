@@ -40,6 +40,7 @@ typedef enum Return_t : int {
     SWAPCHAIN_ERROR     = -14,  // Swapchain errors
     RENDER_PASS_ERROR   = -15,  // Render pass errors
     FRAME_ERROR         = -16,  // Frame errors
+    VMA_ERROR           = -17,  // Vulkan Memory Allocator errors
 } Return_t;
 
 // Window flags for window creation with SDL

@@ -73,6 +73,7 @@ private:
     // ----
     Return_t init_sdl_();
     Return_t init_vulkan_();
+    Return_t init_vma_();
     Return_t init_swapchain_();
     Return_t init_queues_();
     Return_t init_render_pass_();
