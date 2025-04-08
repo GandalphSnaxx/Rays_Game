@@ -36,13 +36,14 @@ struct VkInit {
 /// @brief Vulkan data.
 struct VkData {
     SDL_Window*                 window;
-    VkExtent2D                  extent;
+    // VkExtent2D                  extent;
     vkb::Instance               instance;
     vkb::InstanceDispatchTable  instDispTable;
     VkSurfaceKHR                surface;
     vkb::Device                 device;
     vkb::DispatchTable          dispTable;
     vkb::Swapchain              swapchain;
+    VmaAllocator                allocator;
 };
 
 struct RenderData {
@@ -57,9 +58,12 @@ struct RenderData {
     VkPipelineLayout            pipelineLayout;
     VkPipeline                  graphicsPipeline;
 
-    VkCommandPool               immCmdPool;
-    std::vector<VkCommandBuffer>immCmdBuffers;
-    VkFence                     immFence;
+    VkCommandPool               commandPool;
+    std::vector<VkCommandBuffer>commandBuffers;
+    
+    // VkCommandPool               immCmdPool;
+    // std::vector<VkCommandBuffer>immCmdBuffers;
+    // VkFence                     immFence;
 
     std::vector<VkSemaphore>    availableSemaphores;
     std::vector<VkSemaphore>    finishedSemaphore;
@@ -69,17 +73,17 @@ struct RenderData {
     size_t                      currentFrame = 0;
 };
 
-struct FrameData {
-    VkSemaphore     swapchainSemaphore, 
-                    renderSemaphore;
-    VkFence         renderFence;
+// struct FrameData {
+//     VkSemaphore     swapchainSemaphore, 
+//                     renderSemaphore;
+//     VkFence         renderFence;
 
-    VkCommandPool   cmdPool;
-    VkCommandBuffer cmdBuffer;
+//     VkCommandPool   cmdPool;
+//     VkCommandBuffer cmdBuffer;
 
-    DeletionQueue   deleteQueue;
-    // Descriptor   descriptors;
-};
+//     DeletionQueue   deleteQueue;
+//     // Descriptor   descriptors;
+// };
 
 struct EngineStats {
     size_t frametime_us;
@@ -88,25 +92,12 @@ struct EngineStats {
     size_t drawcallCount;
 };
 
-struct AllocatedImage {
-    VkImage         image;
-    VkImageView     imageView;
-    VmaAllocation   allocation;
-    VkExtent3D      extent;
-    VkFormat        imageFormat;
-};
-
-struct ShaderFile {
-    std::string path;
-    VkShaderStageFlagBits type;
-};
-
 struct Buffer {
     VkBuffer                handle      = nullptr;
-    VkDeviceMemory          memory      = nullptr;
-    VkDeviceSize            size        = 0;
-    VkBufferUsageFlagBits   usage       = VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM;
-    VmaMemoryUsage          vmaUsage    = VMA_MEMORY_USAGE_MAX_ENUM;
+    // VkDeviceMemory          memory      = nullptr;
+    // VkDeviceSize            size        = 0;
+    // VkBufferUsageFlagBits   usage       = VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM;
+    // VmaMemoryUsage          vmaUsage    = VMA_MEMORY_USAGE_MAX_ENUM;
     VmaAllocation           allocation  = nullptr;
     VmaAllocationInfo       info        = {};
 };

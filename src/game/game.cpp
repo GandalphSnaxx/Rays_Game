@@ -37,11 +37,11 @@ bool RaysGame::run() {
 }
 bool RaysGame::close() {
     if (gameState_(CLOSED)) {
-        std::cout << "Game is already closed!" << std::endl;
+        std::cout << "Game is already closed" << std::endl;
         return false;
     }
     if (!gameState_(INITALIZED)) {
-        std::cout << "Game is not initalized, cannot close!" << std::endl;
+        std::cout << "Game is not initalized, already closed" << std::endl;
         return true;
     }
     engine_.clean();

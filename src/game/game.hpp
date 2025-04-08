@@ -41,4 +41,24 @@ private:
     void BuildRequirements_();
 };
 
+typedef struct normal8_t {
+public:
+    normal8_t(const uint8_t x) : v(x) {}
+    normal8_t() : v(0) {}
+
+    // Examples:
+    // 0b0000_0000: 0.0
+    // 0b1111_1111: 1.0
+    // 0b00xx_xxxx: [0.0 - 0.25)
+    // 0b01xx_xxxx: [0.25 - 0.5)
+    // 0b10xx_xxxx: [0.5 - 0.75)
+    // 0b11xx_xxxx: [0.75 - 1.0]
+
+    normal8_t operator+(const normal8_t& other) const {
+        return normal8_t((v + other.v) / 2);
+    }
+private:
+    uint8_t v;
+} normal8_t;
+
 #endif // GAME_HPP

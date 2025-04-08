@@ -27,7 +27,7 @@
 // #define ERR_LOG(m) error_log_(m, __FILENAME__, __LINE__)
 
 #define MSG_LOG(m) std::cout << "[ENGINE] Message in " << __FILENAME__ << " at line " << __LINE__ << "\t - \"" << m << "\"" << std::endl
-#define ERR_LOG(m) std::cout << "[ENGINE] ERROR   in " << __FILENAME__ << " at line " << __LINE__ << "\t - \"" << m << "\"" << std::endl
+#define ERR_LOG(m) std::cout << "[ENGINE]  ERROR  in " << __FILENAME__ << " at line " << __LINE__ << "\t - \"" << m << "\"" << std::endl
 
 #define ERR_CHECK(f, e)         \
 if(f < 0) {                     \
@@ -46,17 +46,674 @@ bool operator!(const Return_t& ret) {
 using namespace vk;
 
 //---------------------------------------------------------------------------------------------------------------------------//
+/// @section Common Functions
+//---------------------------------------------------------------------------------------------------------------------------//
+
+Return_t create_surface_sdl(VkData* vk) {
+    std::string msg = "Creating a surface with SDL.";
+
+    // VkSurfaceKHR surface = VK_NULL_HANDLE;
+    // auto err = SDL_Vulkan_CreateSurface(vk_.window, vk_.instance, nullptr, &surface);
+    if (!SDL_Vulkan_CreateSurface(vk->window, vk->instance, nullptr, &vk->surface)) { 
+        ERR_LOG(msg +" Fail!\n\tFailed to create a surface with SDL: " << SDL_GetError());
+        return SDL_ERROR; 
+    }
+
+    // vk->surface = surface;
+    MSG_LOG(msg +" Success");
+    return SUCCESS;
+}
+
+//---------------------------------------------------------------------------------------------------------------------------//
+/// @section Initalizer Functions
+//---------------------------------------------------------------------------------------------------------------------------//
+
+Return_t init_sdl(VkData* vk, const VkInit* init, DeletionQueue* deleteQueue) {
+    std::string msg = "Initalizing SDL.";
+
+    // We initialize SDL and create a window with it.
+    if(!SDL_Init(SDL_INIT_VIDEO)) {
+		ERR_LOG(msg +" Fail!\n\tFailed to initialize SDL: " << SDL_GetError());
+		return SDL_ERROR;
+	}
+    msg += '.';
+    // if (!SDL_Vulkan_LoadLibrary(nullptr)) {
+    //     ERR_LOG("Failed to load Vulkan library for SDL: " << SDL_GetError());
+    //     return SDL_ERROR;
+    // }
+
+    // Use SDL to create a window
+    vk->window = SDL_CreateWindow(
+        init->appName,
+        init->defaultWindowSize.width,
+        init->defaultWindowSize.height,
+        SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+    msg += '.';
+
+    // Check for errors
+    if (vk->window == nullptr) {
+        ERR_LOG(msg +" Fail!\n\tFailed to create a window: " << SDL_GetError());
+        return SDL_ERROR;
+    }
+    msg += '.';
+
+    // Add window destruction to the deletion queue
+    deleteQueue->add([&]() {
+        SDL_DestroyWindow(vk->window);
+        SDL_Quit();
+    });
+    msg += '.';
+
+    MSG_LOG(msg +" Success");
+    return SUCCESS;
+}
+
+Return_t init_vulkan(VkData* vk, const VkInit* init, DeletionQueue* deleteQueue) {
+    std::string msg = "Initalizing Vulkan.";
+
+    // Use VkBootstrap to initalize Vulkan
+    { // Create a Vulkan instance. Get the required SDL extensions
+        uint32_t extensionCount = 0;
+        const char* const* extensions = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
+
+        vkb::InstanceBuilder builder;
+        auto inst_ret = builder
+            .set_app_name(init->appName)
+            .request_validation_layers(init->validationLayersEnable)
+            .enable_extensions(extensionCount, extensions)
+            // .enable_extension("VK_KHR_buffer_device_address")
+            .use_default_debug_messenger()
+            .build();
+
+        if (!inst_ret) {
+            ERR_LOG(msg + " Fail!\n\tFailed to create a Vulkan instance. Error message: " << inst_ret.error().message());
+            return VK_BOOTSTRAP_ERROR;
+        }
+        
+        // Set instance and instance dispatch table
+        vk->instance = inst_ret.value();
+        vk->instDispTable = vk->instance.make_table();
+        msg += '.';
+    }
+    
+    // Create a surface for Vulkan
+    if (!create_surface_sdl(vk)) {
+        ERR_LOG(msg + " Fail!\n\tFailed to create a surface");
+        return VK_BOOTSTRAP_ERROR;
+    }
+    msg += '.';
+
+    { // Select devices
+        VkPhysicalDeviceVulkan13Features features13 = {};
+        features13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+        features13.dynamicRendering = true;
+        features13.synchronization2 = true;
+
+        VkPhysicalDeviceVulkan12Features features12 = {};
+        features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;	
+        features12.bufferDeviceAddress = true;
+        features12.descriptorIndexing = true;
+
+        vkb::PhysicalDeviceSelector selector(vk->instance);
+        auto phys_ret = selector
+            .set_required_features_13(features13)
+            .set_required_features_12(features12)
+            .set_surface(vk->surface)
+            // .set_minimum_version(1, 4)
+            .require_dedicated_transfer_queue()
+            .select();
+        if (!phys_ret) {
+            ERR_LOG(msg + " Fail!\n\tFailed to select a physical device. Error message: " + phys_ret.error().message());
+            return VK_BOOTSTRAP_ERROR;
+        }
+
+        vkb::DeviceBuilder device_builder(phys_ret.value());
+        auto dev_ret = device_builder
+            // .add_required_extension("VK_KHR_buffer_device_address")
+            .build();
+        if (!dev_ret) {
+            ERR_LOG(msg + " Fail!\n\tFailed to find a suitable GPU. Error message: " + dev_ret.error().message());
+            return VK_BOOTSTRAP_ERROR;
+        }
+        vk->device = dev_ret.value();
+        msg += '.';
+    }
+
+    // { // Get a graphics queue
+    //     auto graphics_queue_ret = vk_.device.get_queue(vkb::QueueType::graphics);
+    //     if (!graphics_queue_ret)  {
+    //         ERR_LOG(msg + "Fail! Failed to get a graphics queue");
+    //         return VK_BOOTSTRAP_ERROR;
+    //     }
+    //     renderData_.graphicsQueue = graphics_queue_ret.value();
+    //     msg += '.';
+    // }
+
+    // Save the dispatch table
+    vk->dispTable = vk->device.make_table();
+
+    deleteQueue->add([&] {
+        vkb::destroy_device(vk->device);
+        vkb::destroy_surface(vk->instance, vk->surface);
+        vkb::destroy_instance(vk->instance);
+    });
+    msg += '.';
+
+    uint32_t extensionCount = 0;
+    vkEnumerateDeviceExtensionProperties(vk->device.physical_device, nullptr, &extensionCount, nullptr);
+    std::vector<VkExtensionProperties> extensions(extensionCount);
+    vkEnumerateDeviceExtensionProperties(vk->device.physical_device, nullptr, &extensionCount, extensions.data());
+    msg += '.';
+
+    bool bufferDeviceAddressSupported = false;
+    for (const auto& ext : extensions) {
+        if (strcmp(ext.extensionName, "VK_KHR_buffer_device_address") == 0) {
+            bufferDeviceAddressSupported = true;
+            break;
+        }
+    }
+    msg += '.';
+
+    if (!bufferDeviceAddressSupported) {
+        ERR_LOG("VK_KHR_buffer_device_address is not supported on this device.");
+        return VULKAN_ERROR;
+    }
+    msg += '.';
+
+    MSG_LOG(msg +" Success");
+    return SUCCESS;
+}
+
+Return_t init_vma(VkData* vk, DeletionQueue* deleteQueue) {
+    std::string msg = "Initalizing VMA.";
+
+    // Initalize the memory allocator
+    VmaAllocatorCreateInfo allocInfo = ALLOC_INFO;
+    allocInfo.physicalDevice    = vk->device.physical_device;
+    allocInfo.device            = vk->device;
+    allocInfo.instance          = vk->instance;
+    allocInfo.flags             = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+    
+    if (vmaCreateAllocator(&allocInfo, &vk->allocator) != VK_SUCCESS) {
+        ERR_LOG(msg +" Fail!\n\tFailed to create VMA allocator");
+        return VMA_ERROR;
+    }
+    msg += '.';
+
+    deleteQueue->add([&] {
+        vmaDestroyAllocator(vk->allocator);
+    });
+    msg += '.';
+
+    MSG_LOG(msg +" Success");
+    return SUCCESS;
+}
+
+Return_t init_swapchain(VkData* vk, DeletionQueue* deleteQueue) {
+    std::string msg = "Initalizing swapchain.";
+
+    vkb::SwapchainBuilder swapchain_builder{ vk->device };
+    auto swap_ret = swapchain_builder.set_old_swapchain(vk->swapchain).build();
+    msg += '.';
+    if (!swap_ret) {
+        ERR_LOG(msg +" Fail!\n\tFailed to build swapchain");
+        return SWAPCHAIN_ERROR;
+    }
+    msg += '.';
+
+    vkb::destroy_swapchain(vk->swapchain);
+    vk->swapchain = swap_ret.value();
+    msg += '.';
+
+    deleteQueue->add([&] {
+        vkb::destroy_swapchain(vk->swapchain);
+    });
+    msg += '.';
+
+    MSG_LOG(msg +" Success");
+    return SUCCESS;
+}
+
+Return_t init_queues(VkData* vk, RenderData* rd, DeletionQueue* deleteQueue) {
+    std::string msg = "Initalizing queues.";
+
+    auto gfxq = vk->device.get_queue(vkb::QueueType::graphics);
+    msg += '.';
+    if (!gfxq.has_value()) {
+        ERR_LOG(msg +" Fail!\n\tFailed to get graphics queue: " + gfxq.error().message());
+        return VK_BOOTSTRAP_ERROR;
+    }
+    msg += '.';
+    rd->graphicsQueue = gfxq.value();
+    msg += '.';
+
+    auto pstq = vk->device.get_queue(vkb::QueueType::present);
+    msg += '.';
+    if (!pstq.has_value()) {
+        ERR_LOG(msg +" Fail!\n\tFailed to get present queue: " + pstq.error().message());
+        return VK_BOOTSTRAP_ERROR;
+    }
+    msg += '.';
+    rd->presentQueue = pstq.value();
+    msg += '.';
+
+    MSG_LOG(msg +" Success");
+    return SUCCESS;
+}
+
+Return_t init_render_pass(VkData* vk, RenderData* rd, DeletionQueue* deleteQueue) {
+    std::string msg = "Initalizing render pass.";
+
+    VkAttachmentDescription colorAttachment = {};
+    colorAttachment.format          = vk->swapchain.image_format;
+    colorAttachment.samples         = VK_SAMPLE_COUNT_1_BIT;
+    colorAttachment.loadOp          = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.storeOp         = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.stencilLoadOp   = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachment.stencilStoreOp  = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttachment.initialLayout   = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachment.finalLayout     = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    msg += '.';
+
+    VkAttachmentReference colorAttachmentRef = {};
+    colorAttachmentRef.attachment   = 0;
+    colorAttachmentRef.layout       = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    msg += '.';
+
+    VkSubpassDescription subpass = {};
+    subpass.pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount    = 1;
+    subpass.pColorAttachments       = &colorAttachmentRef;
+    msg += '.';
+
+    VkSubpassDependency dependency = {};
+    dependency.srcSubpass       = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass       = 0;
+    dependency.srcStageMask     = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask    = 0;
+    dependency.dstStageMask     = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    msg += '.';
+
+    VkRenderPassCreateInfo renderPassInfo = {};
+    renderPassInfo.sType            = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    renderPassInfo.attachmentCount  = 1;
+    renderPassInfo.pAttachments     = &colorAttachment;
+    renderPassInfo.subpassCount     = 1;
+    renderPassInfo.pSubpasses       = &subpass;
+    renderPassInfo.dependencyCount  = 1;
+    renderPassInfo.pDependencies    = &dependency;
+    msg += '.';
+
+    if (vk->dispTable.createRenderPass(&renderPassInfo, nullptr, &rd->renderPass) != VK_SUCCESS) {
+        ERR_LOG(msg +" Fail!\n\tFailed to create render pass");
+        return RENDER_PASS_ERROR; // failed to create render pass!
+    }
+    msg += '.';
+
+    deleteQueue->add([&] {
+        vk->dispTable.destroyRenderPass(rd->renderPass, nullptr);
+    });
+    msg += '.';
+
+    MSG_LOG(msg +" Success");
+    return SUCCESS;
+}
+
+Return_t init_framebuffers(VkData* vk, RenderData* rd, DeletionQueue* deleteQueue) {
+    std::string msg = "Initalizing framebuffers.";
+
+    rd->swapchainImages     = vk->swapchain.get_images().value();
+    rd->swapchainImageViews = vk->swapchain.get_image_views().value();
+    msg += '.';
+
+    rd->framebuffers.resize(rd->swapchainImageViews.size());
+
+    for (size_t i = 0; i < rd->swapchainImageViews.size(); i++) {
+        VkImageView attachments[] = { rd->swapchainImageViews[i] };
+
+        VkFramebufferCreateInfo framebufferInfo = {};
+        framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass      = rd->renderPass;
+        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.pAttachments    = attachments;
+        framebufferInfo.width           = vk->swapchain.extent.width;
+        framebufferInfo.height          = vk->swapchain.extent.height;
+        framebufferInfo.layers          = 1;
+
+        if (vk->dispTable.createFramebuffer(&framebufferInfo, nullptr, &rd->framebuffers[i]) != VK_SUCCESS) {
+            ERR_LOG(msg +" Fail!\n\tFailed to create a framebuffer");
+            return FRAME_ERROR;
+        }
+        msg += '.';
+    }
+
+    deleteQueue->add([&] {
+        for (auto framebuffer : rd->framebuffers) {
+            vk->dispTable.destroyFramebuffer(framebuffer, nullptr);
+        }
+    });
+    msg += '.';
+
+    MSG_LOG(msg +" Success");
+    return SUCCESS;
+}
+
+Return_t init_command_pools(VkData* vk, RenderData* rd, DeletionQueue* deleteQueue) {
+    std::string msg = "Initalizing commands.";
+
+    // Create a command pool for commands submitted to the graphics queue for each frame and one for immediate submission.
+    // Allow the pool to reset for individual commands
+    VkCommandPoolCreateInfo poolInfo = {};
+    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    // poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    poolInfo.queueFamilyIndex = vk->device.get_queue_index(vkb::QueueType::graphics).value();
+    msg += '.';
+
+    // Create the immediate command pool
+    if (vk->dispTable.createCommandPool(&poolInfo, nullptr, &rd->commandPool) != VK_SUCCESS) {
+        ERR_LOG("Failed to create the immediate command pool");
+        return VULKAN_ERROR;
+    }
+    msg += '.';
+
+    deleteQueue->add([&] {
+        vk->dispTable.destroyCommandPool(rd->commandPool, nullptr);
+    });
+    msg += '.';
+
+    MSG_LOG(msg +" Success");
+    return SUCCESS;
+}
+
+Return_t init_command_buffers(VkData* vk, RenderData* rd, DeletionQueue* deleteQueue, Object* obj) {
+    std::string msg = "Initalizing command buffers.";
+
+    // if (!init_triangle_buffers_()) {
+    //     ERR_LOG("Failed to initalize triangle vertex buffers");
+    //     return BUFFER_ERROR;
+    // }
+    // msg += '.';
+
+    rd->commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+
+    VkCommandBufferAllocateInfo allocInfo = {};
+    allocInfo.sType                 = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool           = rd->commandPool;
+    allocInfo.level                 = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount    = (uint32_t)rd->commandBuffers.size();
+    msg += '.';
+
+    if (vk->dispTable.allocateCommandBuffers(&allocInfo, rd->commandBuffers.data()) != VK_SUCCESS) {
+        ERR_LOG(msg +" Fail!\n\tFailed to allocate command buffers");
+        return COMMAND_ERROR;
+    }
+    msg += '.';
+
+    for (size_t i = 0; i < rd->commandBuffers.size(); i++) {
+        if (!obj->draw(rd->commandBuffers[i], rd->renderPass, rd->framebuffers[i], vk->swapchain.extent)) {
+            ERR_LOG(msg +" Fail!\n\tFailed to initalize triangle command buffers");
+            return BUFFER_ERROR;
+        }
+        msg += '.';
+        // VkCommandBufferBeginInfo begin_info = {};
+        // begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+        // if (vk->dispTable.beginCommandBuffer(rd->commandBuffers[i], &begin_info) != VK_SUCCESS) {
+        //     ERR_LOG(msg +" Fail!\n\tFailed to begin recording command buffer");
+        //     return BUFFER_ERROR;
+        // }
+
+        // VkRenderPassBeginInfo render_pass_info = {};
+        // render_pass_info.sType              = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        // render_pass_info.renderPass         = rd->renderPass;
+        // render_pass_info.framebuffer        = rd->framebuffers[i];
+        // render_pass_info.renderArea.offset  = { 0, 0 };
+        // render_pass_info.renderArea.extent  = vk->swapchain.extent;
+        // VkClearValue clearColor{ { { 0.0f, 0.0f, 0.0f, 1.0f } } };
+        // render_pass_info.clearValueCount    = 1;
+        // render_pass_info.pClearValues       = &clearColor;
+
+        // VkViewport viewport = {};
+        // viewport.x          = 0.0f;
+        // viewport.y          = 0.0f;
+        // viewport.width      = (float)vk->swapchain.extent.width;
+        // viewport.height     = (float)vk->swapchain.extent.height;
+        // viewport.minDepth   = 0.0f;
+        // viewport.maxDepth   = 1.0f;
+
+        // VkRect2D scissor = {};
+        // scissor.offset = { 0, 0 };
+        // scissor.extent = vk->swapchain.extent;
+
+        // vk->dispTable.cmdSetViewport(rd->commandBuffers[i], 0, 1, &viewport);
+        // vk->dispTable.cmdSetScissor(rd->commandBuffers[i], 0, 1, &scissor);
+
+        // vk->dispTable.cmdBeginRenderPass(rd->commandBuffers[i], &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+
+        // vk->dispTable.cmdBindPipeline(rd->commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, triangle_.material.pipeline);
+
+        // vk->dispTable.cmdDraw(rd->commandBuffers[i], 3, 1, 0, 0);
+
+        // vk->dispTable.cmdEndRenderPass(rd->commandBuffers[i]);
+
+        // if (vk->dispTable.endCommandBuffer(rd->commandBuffers[i]) != VK_SUCCESS) {
+        //     MSG_LOG(msg +" Fail!\n\tFailed to record a command buffer");
+        //     return BUFFER_ERROR;
+        // }
+        // msg += '.';
+    }
+
+    return SUCCESS;
+}
+
+Return_t init_sync(VkData* vk, RenderData* rd, DeletionQueue* deleteQueue) {
+    std::string msg = "Initalizing sync structures.";
+
+    // Create syncronization structures
+    // One fence to control when the gpu has finished rendering the frame, 
+    //  and 2 semaphores to syncronize rendering with swapchain
+    // Fence should start signaled so the first frame can be waited on
+    rd->availableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    rd->finishedSemaphore.resize(MAX_FRAMES_IN_FLIGHT);
+    rd->inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+    rd->imageInFlight.resize(vk->swapchain.image_count, VK_NULL_HANDLE);
+    msg += '.';
+
+    // VkSemaphoreCreateInfo semaphoreInfo = {};
+    // semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    // VkFenceCreateInfo fenceInfo = {};
+    // fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    // fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    // if (vk->dispTable.createFence(&FENCE_INFO, nullptr, &rd->inFlightFences) != VK_SUCCESS) {
+    //     ERR_LOG("Failed to create immediate submit fence");
+    //     return SYNC_ERROR;
+    // }
+
+    // deleteQueue->add([&] {
+    //     vk->dispTable.destroyFence(rd->immFence, nullptr);
+    // });
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        if (vk->dispTable.createSemaphore(&SEMAPHORE_INFO, nullptr, &rd->availableSemaphores[i]) != VK_SUCCESS ||
+            vk->dispTable.createSemaphore(&SEMAPHORE_INFO, nullptr, &rd->finishedSemaphore[i])   != VK_SUCCESS ||
+            vk->dispTable.createFence    (&FENCE_INFO,     nullptr, &rd->inFlightFences[i])      != VK_SUCCESS) {
+            ERR_LOG(msg +" Fail!\n\tFailed to create sync objects");
+            return SYNC_ERROR;
+        }
+        msg += '.';
+
+        deleteQueue->add([&] {
+            vk->dispTable.destroySemaphore(rd->finishedSemaphore[i],   nullptr);
+            vk->dispTable.destroySemaphore(rd->availableSemaphores[i], nullptr);
+            vk->dispTable.destroyFence    (rd->inFlightFences[i],      nullptr);
+        });
+        msg += '.';
+    }
+
+    MSG_LOG(msg +" Success");
+    return SUCCESS;
+}
+
+Return_t recreate_swapchain(VkData* vk, RenderData* rd, DeletionQueue* deleteQueue, Object* obj) {
+    std::string msg = "Recreating swapchain.";
+
+    vk->dispTable.deviceWaitIdle();
+    msg += '.';
+
+    vk->dispTable.destroyCommandPool(rd->commandPool, nullptr);
+    msg += '.';
+
+    // for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+    //     vk_.dispTable.destroyFramebuffer(frames_[i].framebuffer, nullptr);
+    // }
+    for (auto framebuffer : rd->framebuffers) {
+        vk->dispTable.destroyFramebuffer(framebuffer, nullptr);
+    }
+    msg += '.';
+
+    vk->swapchain.destroy_image_views(rd->swapchainImageViews);
+    msg += '.';
+
+    if (!init_swapchain(vk, deleteQueue)) { 
+        ERR_LOG(msg +" Fail!\n\tFailed to initalize swapchain");
+        return SWAPCHAIN_ERROR; 
+    } msg += '.';
+    if (!init_framebuffers(vk, rd, deleteQueue)) { 
+        ERR_LOG(msg +" Fail!\n\tFailed to initalize framebuffers");
+        return SWAPCHAIN_ERROR; 
+    } msg += '.';
+    if (!init_command_pools(vk, rd, deleteQueue)) { 
+        ERR_LOG(msg +" Fail!\n\tFailed to initalize command pools");
+        return SWAPCHAIN_ERROR; 
+    } msg += '.';
+    if (!init_command_buffers(vk, rd, deleteQueue, obj)) { 
+        ERR_LOG(msg +" Fail!\n\tFailed to initalize command buffers");
+        return SWAPCHAIN_ERROR; 
+    } msg += '.';
+
+    MSG_LOG(msg +" Success");
+    return SUCCESS;
+}
+
+Return_t create_or_resize_buffer(
+    VmaAllocator allocator, 
+    Buffer* pBuffer, 
+    size_t newSize, 
+    VkBufferUsageFlags usage,
+    VmaMemoryUsage memoryUsage
+) {
+    if (pBuffer->handle != VK_NULL_HANDLE) {
+        // vk_.dispTable.destroyBuffer(buffer.handle, nullptr);
+        vmaDestroyBuffer(allocator, pBuffer->handle, nullptr);
+    }
+    // if (buffer.memory != VK_NULL_HANDLE) {
+    //     vk->dispTable.freeMemory(buffer.memory, nullptr);
+    // }
+    
+    // Using VMA
+    VkBufferCreateInfo bufferInfo = {};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.pNext = nullptr;
+    bufferInfo.size  = newSize;
+    bufferInfo.usage = usage;
+
+    VmaAllocationCreateInfo vmaAllocInfo = {};
+    vmaAllocInfo.usage = memoryUsage;
+    vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+    // Allocate the buffer
+    if (vmaCreateBuffer(
+        allocator, 
+        &bufferInfo, 
+        &vmaAllocInfo, 
+        &pBuffer->handle, 
+        &pBuffer->allocation,
+        &pBuffer->info) != 
+        VK_SUCCESS
+    ) {
+        ERR_LOG("Failed to create a buffer");
+        return BUFFER_ERROR;
+    }
+
+    return SUCCESS;
+}
+
+
+
+// Return_t create_${element}(args) {
+
+//     return SUCCESS;
+// }
+
+// Return_t clean_${element}(args) {
+//     return SUCCESS;
+// }
+
+// Return_t init_${element}(args) {
+//     std::string msg = "Initalizing ${element}.";
+
+//     if (!create_${element}(args)) {
+//         ERR_LOG(msg + " Failed");
+//         return ERROR;
+//     }
+
+//     deleteQueue->add([&] {
+//         if (!clean_${element}(args)) { ERR_LOG("Failed to clean ${element}!"); }
+//     });
+
+//     MSG_LOG(msg + " Success");
+//     return SUCCESS;
+// }
+
+//---------------------------------------------------------------------------------------------------------------------------//
 /// @section Public Member Functions
 //---------------------------------------------------------------------------------------------------------------------------//
 
 Return_t Engine::init(const VkInit& init /* = {} */) {
     MSG_LOG("Initalizing Vulkan engine...");
 
-    init_ = init;
-    if(init_.validationLayersEnable) {
+    // init_ = init;
+    if(init.validationLayersEnable) {
         MSG_LOG("Vulkan validation layers enabled");
         flags_ += VALIDATION_LAYERS; // Add Vulkan validation layers
     }
+    // vk_.extent = init_.defaultWindowSize;
+
+    ERR_CHECK(init_sdl          (&vk_, &init,        &deleteQueue_), SDL_ERROR          );
+    ERR_CHECK(init_vulkan       (&vk_, &init,        &deleteQueue_), VULKAN_ERROR       );
+    ERR_CHECK(init_vma          (&vk_,               &deleteQueue_), VULKAN_ERROR       );
+    ERR_CHECK(init_swapchain    (&vk_,               &deleteQueue_), SWAPCHAIN_ERROR    );
+    ERR_CHECK(init_queues       (&vk_, &renderData_, &deleteQueue_), VK_BOOTSTRAP_ERROR );
+    ERR_CHECK(init_render_pass  (&vk_, &renderData_, &deleteQueue_), RENDER_PASS_ERROR  );
+    ERR_CHECK(triangle_.init_pipeline(&vk_, &renderData_, &deleteQueue_), PIPELINE_ERROR);
+    ERR_CHECK(init_framebuffers (&vk_, &renderData_, &deleteQueue_), FRAME_ERROR        );
+    ERR_CHECK(init_command_pools(&vk_, &renderData_, &deleteQueue_), COMMAND_ERROR      );
+    ERR_CHECK(triangle_.init_default_data(), ERROR);
+    if (!create_or_resize_buffer(
+        vk_.allocator, 
+        &triangle_.vertexBuffer, 
+        sizeof(triangle_.vertices[0]) * triangle_.vertices.size(),
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+		VMA_MEMORY_USAGE_GPU_ONLY)
+    ) {
+            ERR_LOG("Failed to create triangle vertex buffer");
+            return BUFFER_ERROR;
+    }
+    if (!create_or_resize_buffer(
+        vk_.allocator, 
+        &triangle_.indexBuffer, 
+        sizeof(triangle_.indices[0]) * triangle_.indices.size(),
+        VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+		VMA_MEMORY_USAGE_GPU_ONLY)
+    ) {
+            ERR_LOG("Failed to create triangle index buffer");
+            return BUFFER_ERROR;
+    }
+    ERR_CHECK(init_command_buffers(&vk_, &renderData_, &deleteQueue_, &triangle_), COMMAND_ERROR);
+    ERR_CHECK(init_sync         (&vk_, &renderData_, &deleteQueue_), SYNC_ERROR         );
 
     // Initalize each part
     // if (!init_sdl_()) {
@@ -65,17 +722,17 @@ Return_t Engine::init(const VkInit& init /* = {} */) {
     // } else {
     //     MSG_LOG("SDL initalized");
     // }
-    ERR_CHECK(init_sdl_(),              SDL_ERROR           );
-    ERR_CHECK(init_vulkan_(),           VULKAN_ERROR        );
-    ERR_CHECK(init_vma_(),              VMA_ERROR           );
-    ERR_CHECK(init_swapchain_(),        SWAPCHAIN_ERROR     );
-    ERR_CHECK(init_queues_(),           SYNC_ERROR          );
-    ERR_CHECK(init_render_pass_(),      RENDER_PASS_ERROR   );
-    ERR_CHECK(init_pipelines_(),        PIPELINE_ERROR      );
-    ERR_CHECK(init_framebuffers_(),     FRAME_ERROR         );
-    ERR_CHECK(init_command_pools_(),    COMMAND_ERROR       );
-    ERR_CHECK(init_command_buffers_(),  COMMAND_ERROR       );
-    ERR_CHECK(init_sync_(),             SYNC_ERROR          );
+    // ERR_CHECK(init_sdl_(),              SDL_ERROR           );
+    // ERR_CHECK(init_vulkan_(),           VULKAN_ERROR        );
+    // ERR_CHECK(init_vma_(),              VMA_ERROR           );
+    // ERR_CHECK(init_swapchain_(),        SWAPCHAIN_ERROR     );
+    // ERR_CHECK(init_queues_(),           SYNC_ERROR          );
+    // ERR_CHECK(init_render_pass_(),      RENDER_PASS_ERROR   );
+    // ERR_CHECK(init_pipelines_(),        PIPELINE_ERROR      );
+    // ERR_CHECK(init_framebuffers_(),     FRAME_ERROR         );
+    // ERR_CHECK(init_command_pools_(),    COMMAND_ERROR       );
+    // ERR_CHECK(init_command_buffers_(),  COMMAND_ERROR       );
+    // ERR_CHECK(init_sync_(),             SYNC_ERROR          );
 
     vk_.dispTable.deviceWaitIdle();
 
@@ -117,19 +774,25 @@ Return_t Engine::draw(const SDL_Event& event) {
         &swapchainImageIndex);
     
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-        return recreate_swapchain_();
+        return recreate_swapchain(&vk_, &renderData_, &deleteQueue_, &triangle_);
     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
         ERR_LOG("Failed to acquire swapchain image");
         return ERROR;
     }
 
     // Update the current draw extent
-    vk_.extent = vk_.swapchain.extent;
+    // vk_.extent = vk_.swapchain.extent;
 
     vk_.dispTable.resetFences(1, &renderData_.inFlightFences[renderData_.currentFrame]);
 
-    vk_.dispTable.resetCommandBuffer(renderData_.immCmdBuffers[renderData_.currentFrame], 0);
+    vk_.dispTable.resetCommandBuffer(renderData_.commandBuffers[renderData_.currentFrame], 0);
     // recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
+    triangle_.draw(
+        renderData_.commandBuffers[renderData_.currentFrame], 
+        renderData_.renderPass, 
+        renderData_.framebuffers[renderData_.currentFrame], 
+        vk_.swapchain.extent);
+
 
     if (renderData_.imageInFlight[swapchainImageIndex] != VK_NULL_HANDLE) {
         vk_.dispTable.waitForFences(1, &renderData_.imageInFlight[swapchainImageIndex], VK_TRUE, UINT64_MAX);
@@ -145,7 +808,7 @@ Return_t Engine::draw(const SDL_Event& event) {
     submitInfo.pWaitSemaphores      = wait_semaphores;
     submitInfo.pWaitDstStageMask    = wait_stages;
     submitInfo.commandBufferCount   = 1;
-    submitInfo.pCommandBuffers      = &renderData_.immCmdBuffers[renderData_.currentFrame];
+    submitInfo.pCommandBuffers      = &renderData_.commandBuffers[renderData_.currentFrame];
 
     VkSemaphore signal_semaphores[] = { renderData_.finishedSemaphore[renderData_.currentFrame] };
     submitInfo.signalSemaphoreCount = 1;
@@ -168,7 +831,7 @@ Return_t Engine::draw(const SDL_Event& event) {
 
     result = vk_.dispTable.queuePresentKHR(renderData_.presentQueue, &present_info);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
-        return recreate_swapchain_();
+        return recreate_swapchain(&vk_, &renderData_, &deleteQueue_, &triangle_);
     } else if (result != VK_SUCCESS) {
         ERR_LOG("Failed to present swapchain image");
         return SWAPCHAIN_ERROR;
@@ -181,11 +844,11 @@ Return_t Engine::draw(const SDL_Event& event) {
 Return_t Engine::clean() {
     MSG_LOG("Cleaning Vulkan engine");
 
-    if (flags_(CLEANED)) {
-        MSG_LOG("Tried to clean a cleaned engine");
+    if (flags_.isSet(CLEANED)) {
+        MSG_LOG("Engine already cleaned");
         return DONE_ALREADY; 
     }
-    if (!flags_(INITALIZED)) {
+    if (flags_.isNSet(INITALIZED)) {
         MSG_LOG("Tried to clean an uninitalized engine");
         return UNNECESSARY;
     }
@@ -193,13 +856,14 @@ Return_t Engine::clean() {
     deleteQueue_.flush(); // Call everything in the deletion queue
 
     flags_ += CLEANED; // Everything went correctly
+    MSG_LOG("Engine cleaning success");
     return SUCCESS;
 }
 
 //---------------------------------------------------------------------------------------------------------------------------//
 /// @section Private Initalizer Functions
 //---------------------------------------------------------------------------------------------------------------------------//
-
+/*
 Return_t Engine::init_sdl_() {
     MSG_LOG("Initlalizing SDL...");
 
@@ -438,16 +1102,16 @@ Return_t Engine::init_framebuffers_() {
     for (size_t i = 0; i < renderData_.swapchainImageViews.size(); i++) {
         VkImageView attachments[] = { renderData_.swapchainImageViews[i] };
 
-        VkFramebufferCreateInfo framebuffer_info = {};
-        framebuffer_info.sType              = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebuffer_info.renderPass         = renderData_.renderPass;
-        framebuffer_info.attachmentCount    = 1;
-        framebuffer_info.pAttachments       = attachments;
-        framebuffer_info.width              = vk_.swapchain.extent.width;
-        framebuffer_info.height             = vk_.swapchain.extent.height;
-        framebuffer_info.layers             = 1;
+        VkFramebufferCreateInfo framebufferInfo = {};
+        framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass      = renderData_.renderPass;
+        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.pAttachments    = attachments;
+        framebufferInfo.width           = vk_.swapchain.extent.width;
+        framebufferInfo.height          = vk_.swapchain.extent.height;
+        framebufferInfo.layers          = 1;
 
-        if (vk_.dispTable.createFramebuffer(&framebuffer_info, nullptr, &renderData_.framebuffers[i]) != VK_SUCCESS) {
+        if (vk_.dispTable.createFramebuffer(&framebufferInfo, nullptr, &renderData_.framebuffers[i]) != VK_SUCCESS) {
             ERR_LOG("Failed to create a framebuffer");
             return FRAME_ERROR;
         }
@@ -488,7 +1152,7 @@ Return_t Engine::init_command_pools_() {
 Return_t Engine::init_command_buffers_() {
     MSG_LOG("Initalizing command buffers...");
 
-    if (!init_triangle_vertex_buffers_()) {
+    if (!init_triangle_buffers_()) {
         ERR_LOG("Failed to initalize triangle vertex buffers");
         return BUFFER_ERROR;
     }
@@ -507,7 +1171,10 @@ Return_t Engine::init_command_buffers_() {
     }
 
     for (int i = 0; i < renderData_.immCmdBuffers.size(); i++) {
-        triangle_.draw(renderData_.immCmdBuffers[i], renderData_.renderPass, renderData_.framebuffers[i], vk_.extent);
+        if (!triangle_.draw(renderData_.immCmdBuffers[i], renderData_.renderPass, renderData_.framebuffers[i], vk_.extent)) {
+            ERR_LOG("Failed to initalize triangle command buffers");
+            return BUFFER_ERROR;
+        }
         // VkCommandBufferBeginInfo begin_info = {};
         // begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -1200,7 +1867,7 @@ Return_t Engine::load_shader_(const std::filesystem::path& path, VkShaderModule*
         ERR_LOG(("Failed to load shader file: " + path.string()).c_str());
         return FILE_ERROR;
     }
-    std::filesystem::path path2;
+    // std::filesystem::path path2;
 
     // Get the file size
     stream.seekg(0, std::ios_base::end);
@@ -1228,38 +1895,80 @@ Return_t Engine::load_shader_(const std::filesystem::path& path, VkShaderModule*
     return SUCCESS;
 }
 
-Return_t Engine::init_triangle_vertex_buffers_() {
+Return_t Engine::init_triangle_buffers_() {
     // Create triangle vertex buffer
-    VkBufferCreateInfo bufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-    bufferInfo.size         = sizeof(triangle_.vertices[0]) * triangle_.vertices.size();
-    bufferInfo.usage        = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-    bufferInfo.sharingMode  = VK_SHARING_MODE_EXCLUSIVE;
-    
-    VmaAllocationCreateInfo allocInfo = {};
-    allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-    
-    // VkBuffer buffer;
-    // VmaAllocation allocation;
-    vmaCreateBuffer(allocator_, 
-        &bufferInfo, 
-        &allocInfo, 
-        &triangle_.vertexBuffer.handle, 
-        &triangle_.vertexBuffer.allocation, 
-        nullptr);
+    if (!create_or_resize_buffer_(triangle_.vertexBuffer, sizeof(triangle_.vertices[0]) * triangle_.vertices.size())) {
+        ERR_LOG("Failed to create triangle vertex buffer");
+        return BUFFER_ERROR;
+    }
+    // Create triangle index buffer
+    if (!create_or_resize_buffer_(triangle_.indexBuffer, sizeof(triangle_.indices[0]) * triangle_.indices.size())) {
+        ERR_LOG("Failed to create triangle index buffer");
+        return BUFFER_ERROR;
+    }
 
     deleteQueue_.add([&] {
         vmaDestroyBuffer(allocator_, triangle_.vertexBuffer.handle, triangle_.vertexBuffer.allocation);
+        vmaDestroyBuffer(allocator_, triangle_.indexBuffer.handle,  triangle_.indexBuffer.allocation );
     });
 
     return SUCCESS;
 }
 
-void Engine::message_log_(const char* message, const char* file, int32_t line) {
-	// printf("[ENGINE] MESSAGE in %s at line %i - \"%s\"\n\n", file, line, message);
-    std::cout << "[ENGINE] Message in " << file << " at line " << line << " - \"" << message << "\"\n" << std::endl;
-}
+// /// @brief Untested function
+// /// @note Uses immediate buffer 0. The example has a dedicated imediate buffer. 
+// Return_t Engine::immediate_submit_(std::function<void(VkCommandBuffer cmd)>&& function) {
+//     // Reset fence and buffer
+//     vk_.dispTable.resetFences(1, &renderData_.immFence);
+//     vk_.dispTable.resetCommandBuffer(renderData_.immCmdBuffers[0], 0);
+//
+// 	VkCommandBuffer cmd = renderData_.immCmdBuffers[0];
+//
+// 	// VkCommandBufferBeginInfo cmdBeginInfo = vkinit::command_buffer_begin_info(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+//     VkCommandBufferBeginInfo cmdBeginInfo = {}; // TODO: Copy the commented out function above
+//     cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+//     cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+//
+// 	// VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBeginInfo));
+//     vk_.dispTable.beginCommandBuffer(cmd, &cmdBeginInfo);
+//
+// 	function(cmd);
+//
+// 	// VK_CHECK(vkEndCommandBuffer(cmd));
+//     vk_.dispTable.endCommandBuffer(cmd);
+//
+//     // TODO: Copy the commented out functions below
+// 	// VkCommandBufferSubmitInfo cmdinfo = vkinit::command_buffer_submit_info(cmd);
+// 	// VkSubmitInfo2 submit = vkinit::submit_info(&cmdinfo, nullptr, nullptr);
+//     VkCommandBufferSubmitInfo cmdInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO };
+//     cmdInfo.commandBuffer = cmd;
+//     // cmdInfo.
+// 	VkSubmitInfo2 submit = { VK_STRUCTURE_TYPE_SUBMIT_INFO_2 };
+//     submit.pCommandBufferInfos = &cmdInfo;
+//
+// 	// submit command buffer to the queue and execute it.
+// 	//  _renderFence will now block until the graphic commands finish execution
+//     if (vk_.dispTable.queueSubmit2(renderData_.graphicsQueue, 1, &submit, renderData_.immFence) != VK_SUCCESS) {
+//         ERR_LOG("Failed to submit an immediate submit");
+//         return COMMAND_ERROR;
+//     }
+//
+//     if (vk_.dispTable.waitForFences(1, &renderData_.immFence, true, UINT64_MAX) != VK_SUCCESS) {
+//         ERR_LOG("Immediate fence failed");
+//         return COMMAND_ERROR;
+//     }
+//
+//     return SUCCESS;
+// }
 
-void Engine::error_log_(const char* message, const char* file, int32_t line) {
-	// printf("[ENGINE] ERROR in %s at line %i - \"%s\"\n\n", file, line, message);
-    std::cout << "[ENGINE] Error in " << file << " at line " << line << " - \"" << message << "\"\n" << std::endl;
-}
+// void Engine::message_log_(const char* message, const char* file, int32_t line) {
+// 	// printf("[ENGINE] MESSAGE in %s at line %i - \"%s\"\n\n", file, line, message);
+//     std::cout << "[ENGINE] Message in " << file << " at line " << line << " - \"" << message << "\"\n" << std::endl;
+// }
+
+// void Engine::error_log_(const char* message, const char* file, int32_t line) {
+//  // printf("[ENGINE] ERROR in %s at line %i - \"%s\"\n\n", file, line, message);
+//     std::cout << "[ENGINE] Error in " << file << " at line " << line << " - \"" << message << "\"\n" << std::endl;
+// }
+
+*/
